@@ -1,187 +1,106 @@
-# 🎵 Music Connect
+# Music Connect - Musician Booking Platform
 
-A platform connecting musicians/bands with event organizers. Musicians can showcase their profiles with pricing and YouTube samples, while event organizers can browse and book talent for their events.
+A modern web application that connects event organizers with talented musicians and bands for events.
 
-## ✨ Features
+## Features
 
-### 🎭 **User Types**
-- **Musicians/Bands**: Individual artists or bands with profiles
-- **Event Organizers**: Businesses or individuals hosting events
+- **Musician Directory**: Browse and discover talented musicians
+- **Band Management**: Create and manage bands, handle membership requests
+- **Event System**: Post and browse events, manage applications
+- **Messaging**: Direct communication between users
+- **Reviews**: Rate and review musicians
+- **Role-based Access**: Different interfaces for organizers and musicians
 
-### 🔐 **Authentication & Profiles**
-- Email/password authentication with Supabase Auth
-- Automatic profile creation after email verification
-- Profile picture uploads via Supabase Storage
-- Location detection from device GPS
-- Rich profile editing with musician-specific fields
+## Tech Stack
 
-### 🎵 **Musician Features**
-- Profile customization (bio, genres, pricing, YouTube samples)
-- Band vs. individual musician designation
-- Pricing range (min/max)
-- YouTube video embedding
-- Genre tagging system
+- **Frontend**: React 19 + TypeScript + Vite
+- **Styling**: Tailwind CSS
+- **Backend**: Supabase (PostgreSQL + Auth + Real-time)
+- **Deployment**: Vercel
 
-### 📅 **Event Management**
-- Event organizers can post job listings
-- Musicians can browse and apply for events
-- Booking system with status tracking
-- Double-booking prevention
+## Getting Started
 
-### 🎨 **Modern UI/UX**
-- Responsive design with Tailwind CSS
-- Beautiful profile cards with images
-- Advanced search and filtering
-- Interactive location detection
-- Professional landing page
+### Prerequisites
 
-## 🚀 Quick Start
+- Node.js 18+ 
+- npm or yarn
+- Supabase account and project
 
-### 1. **Supabase Setup**
+### Installation
+
+1. Clone the repository:
 ```bash
-# Create new Supabase project at https://supabase.com
-# Get your project URL and anon key
+git clone <your-repo-url>
+cd Music/web
 ```
 
-### 2. **Environment Variables**
-Create `.env` file in the `web` directory:
-```env
-VITE_SUPABASE_URL=your_supabase_project_url
-VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-```
-
-### 3. **Database Schema**
-Run the SQL files in your Supabase SQL editor:
-1. `supabase/schema.sql` - Main database tables and RLS policies
-2. `supabase/storage.sql` - Storage bucket setup for profile pictures
-
-### 4. **Install Dependencies**
+2. Install dependencies:
 ```bash
-cd web
 npm install
 ```
 
-### 5. **Start Development Server**
+3. Set up environment variables:
+Create a `.env` file in the `web` directory:
+```env
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
+
+4. Start the development server:
 ```bash
 npm run dev
 ```
 
-## 🗄️ Database Schema
+The app will be available at `http://localhost:5173`
 
-### **Tables**
-- `profiles` - User profiles with role, bio, location, pricing
-- `events` - Event listings with budget and scheduling
-- `bookings` - Event bookings with status tracking
-- `messages` - Direct messaging between users
-- `reviews` - Rating and review system
+## Deployment
 
-### **Key Features**
-- Row Level Security (RLS) for data protection
-- Double-booking prevention triggers
-- Automatic timestamp management
-- UUID primary keys for security
+### Vercel Deployment
 
-## 🔧 Configuration
+1. Push your code to GitHub
+2. Connect your GitHub repository to Vercel
+3. Add environment variables in Vercel dashboard:
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_ANON_KEY`
+4. Deploy!
 
-### **Supabase Auth**
-- Email confirmation required
-- JWT tokens for authentication
-- Automatic profile creation after verification
+### Build Commands
 
-### **Storage Buckets**
-- `avatars` - Profile picture storage
-- Public read access
-- User-specific upload permissions
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run preview` - Preview production build
+- `npm run lint` - Run ESLint
 
-### **Location Services**
-- GPS integration for automatic location detection
-- OpenStreetMap reverse geocoding
-- Fallback to manual entry
+## Project Structure
 
-## 📱 User Flow
-
-### **For Musicians**
-1. Sign up and verify email
-2. Profile automatically created
-3. Edit profile with bio, genres, pricing
-4. Upload profile picture
-5. Add YouTube samples
-6. Browse and apply for events
-
-### **For Event Organizers**
-1. Sign up and verify email
-2. Profile automatically created
-3. Browse musician directory
-4. Filter by genre, price, location
-5. Post event listings
-6. Manage bookings and communications
-
-## 🎨 UI Components
-
-### **Profile Management**
-- Profile picture upload with preview
-- Location detection with GPS
-- Dynamic form fields based on user role
-- Real-time validation and feedback
-
-### **Musician Directory**
-- Beautiful profile cards with images
-- Advanced search and filtering
-- Genre tags and pricing display
-- YouTube sample integration
-
-### **Navigation**
-- Responsive header with profile dropdown
-- Role-based navigation items
-- Quick access to key features
-
-## 🔒 Security Features
-
-- Row Level Security (RLS) policies
-- User authentication required for protected routes
-- Profile data isolation between users
-- Secure file upload validation
-- JWT token management
-
-## 🚀 Deployment
-
-### **Frontend (Vercel/Netlify)**
-```bash
-npm run build
-# Deploy dist folder
+```
+web/
+├── src/
+│   ├── components/     # Reusable UI components
+│   ├── pages/         # Page components
+│   ├── context/       # React context providers
+│   ├── services/      # API service functions
+│   ├── types/         # TypeScript type definitions
+│   ├── utils/         # Utility functions
+│   └── lib/           # Library configurations
+├── public/            # Static assets
+└── vercel.json        # Vercel configuration
 ```
 
-### **Backend (Supabase)**
-- Database and auth automatically deployed
-- Edge functions for custom logic
-- Real-time subscriptions for messaging
+## Environment Variables
 
-## 🐛 Troubleshooting
+| Variable | Description |
+|----------|-------------|
+| `VITE_SUPABASE_URL` | Your Supabase project URL |
+| `VITE_SUPABASE_ANON_KEY` | Your Supabase anonymous key |
 
-### **Common Issues**
-1. **Profile not loading**: Check Supabase environment variables
-2. **Image upload fails**: Verify storage bucket permissions
-3. **Location not working**: Ensure HTTPS for GPS access
-4. **Authentication errors**: Check Supabase Auth settings
+## Contributing
 
-### **Development Tips**
-- Use browser dev tools to check console errors
-- Verify Supabase connection in Network tab
-- Check RLS policies for data access issues
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Submit a pull request
 
-## 🔮 Future Features
+## License
 
-- [ ] Real-time messaging
-- [ ] Payment processing
-- [ ] Calendar integration
-- [ ] Mobile app
-- [ ] Advanced analytics
-- [ ] Social features
-
-## 📄 License
-
-MIT License - see LICENSE file for details
-
----
-
-**Built with ❤️ using React, TypeScript, Tailwind CSS, and Supabase**
+This project is licensed under the MIT License.
