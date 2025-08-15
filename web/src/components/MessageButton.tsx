@@ -58,7 +58,7 @@ export default function MessageButton({
 
 
     // Get user's display name for template
-    const userName = profile.display_name || 'A Musician';
+    const userName = profile?.display_name || 'A Musician';
 
     // Generate template message content
     let templateMessage = `Hi ${recipientName}! 👋
@@ -171,7 +171,7 @@ ${userName}`;
       const { error: messageError } = await supabase
         .from('messages')
         .insert({
-          sender_profile_id: profile.id,
+          sender_profile_id: profile?.id || '',
           recipient_profile_id: recipientProfileId,
           content: finalMessage
         });
@@ -191,7 +191,7 @@ ${userName}`;
           .from('bookings')
           .select('id, status, quotation')
           .eq('event_id', eventContext.eventId)
-          .eq('musician_profile_id', profile.id)
+          .eq('musician_profile_id', profile?.id || '')
           .single();
 
         if (checkError && checkError.code !== 'PGRST116') {
@@ -199,17 +199,14 @@ ${userName}`;
           // Continue with the process even if check fails
         }
 
-        // Determine if this is a new quotation (different amount or status was declined)
-        isNewQuotation = existingBooking && (
-          existingBooking.quotation !== parseFloat(quotation) || 
-          existingBooking.status === 'declined'
-        );
+        // Check if this is a new quotation
+        isNewQuotation = !existingBooking;
 
-        const { data: bookingData, error: bookingError } = await supabase
+        const { error: bookingError } = await supabase
           .from('bookings')
           .upsert({
             event_id: eventContext.eventId,
-            musician_profile_id: profile.id,
+            musician_profile_id: profile?.id || '',
             quotation: quotation ? parseFloat(quotation) : null,
             additional_requirements: additionalRequirements || null,
             // Reset status to pending if this is a new quotation after being declined

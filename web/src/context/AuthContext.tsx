@@ -135,10 +135,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } else if (event === 'TOKEN_REFRESHED' && newSession) {
           setUser(newSession.user);
           setLoading(false);
-        } else if (event === 'TOKEN_REFRESH_FAILED') {
-          console.error('Token refresh failed');
+        } else if (event === 'TOKEN_REFRESH_FAILED' as any) {
+          console.log('Token refresh failed, clearing tokens');
           clearInvalidTokens();
-          setLoading(false);
         } else if (event === 'INITIAL_SESSION' && newSession) {
           // Handle initial session event
           setUser(newSession.user);
@@ -253,7 +252,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { data };
     } catch (error) {
       console.error('Signup error:', error);
-      return { error: error.message };
+      return { error: (error as Error).message };
     }
   };
 
@@ -334,7 +333,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { data };
     } catch (error) {
       console.error('Signin error:', error);
-      return { error: error.message };
+      return { error: (error as Error).message };
     }
   };
 

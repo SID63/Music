@@ -1,8 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
 
 export default function MainNav() {
-  const { user, profile } = useAuth();
   const location = useLocation();
 
   const isActive = (path: string) => {
