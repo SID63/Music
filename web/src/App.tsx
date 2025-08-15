@@ -42,16 +42,15 @@ function ReviewFormWrapper() {
 
 
 function HomePage() {
-  const { user, getDefaultRedirectPath } = useAuth()
+  const { user } = useAuth()
   const navigate = useNavigate()
   
-  // Redirect logged-in users to their appropriate dashboard
+  // Redirect logged-in users to musician page
   useEffect(() => {
     if (user) {
-      const redirectPath = getDefaultRedirectPath()
-      navigate(redirectPath)
+      navigate('/musicians')
     }
-  }, [user, getDefaultRedirectPath, navigate])
+  }, [user, navigate])
   
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -133,17 +132,16 @@ function HomePage() {
 }
 
 function LoginPage() {
-  const { signIn, getDefaultRedirectPath, user } = useAuth()
+  const { signIn, user } = useAuth()
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   
   // Redirect if user is already logged in
   useEffect(() => {
     if (user) {
-      const redirectPath = getDefaultRedirectPath()
-      navigate(redirectPath)
+      navigate('/musicians')
     }
-  }, [user, getDefaultRedirectPath, navigate])
+  }, [user, navigate])
   
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -161,9 +159,8 @@ function LoginPage() {
         alert('Login failed: ' + error)
       }
     } else {
-      // Successful login - redirect to appropriate page
-      const redirectPath = getDefaultRedirectPath()
-      navigate(redirectPath)
+      // Successful login - redirect to musician page immediately
+      navigate('/musicians')
     }
     
     setLoading(false)
@@ -221,7 +218,7 @@ function LoginPage() {
 }
 
 function SignupPage() {
-  const { signUp, user, getDefaultRedirectPath } = useAuth()
+  const { signUp, user } = useAuth()
   const navigate = useNavigate()
   const [signingUp, setSigningUp] = useState(false)
   const [signupComplete, setSignupComplete] = useState(false)
@@ -229,10 +226,9 @@ function SignupPage() {
   // Redirect if user is already logged in
   useEffect(() => {
     if (user) {
-      const redirectPath = getDefaultRedirectPath()
-      navigate(redirectPath)
+      navigate('/musicians')
     }
-  }, [user, getDefaultRedirectPath, navigate])
+  }, [user, navigate])
   
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
