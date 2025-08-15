@@ -1,4 +1,4 @@
-import { BrowserRouter, Route, Routes, Link, Navigate, useParams } from 'react-router-dom'
+import { BrowserRouter, Route, Routes, Link, Navigate, useParams, useNavigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import './index.css'
 import MusicianDirectory from './pages/MusicianDirectory'
@@ -26,7 +26,7 @@ import SimpleEventForm from './components/SimpleEventForm'
 import EventCreationTest from './components/EventCreationTest'
 import EventApplicationTest from './components/EventApplicationTest'
 import BandLeadershipTest from './components/BandLeadershipTest'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -122,8 +122,17 @@ function HomePage() {
 }
 
 function LoginPage() {
-  const { signIn } = useAuth()
+  const { signIn, getDefaultRedirectPath, user } = useAuth()
+  const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
+  
+  // Redirect if user is already logged in
+  useEffect(() => {
+    if (user) {
+      const redirectPath = getDefaultRedirectPath()
+      navigate(redirectPath)
+    }
+  }, [user, getDefaultRedirectPath, navigate])
   
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -140,6 +149,10 @@ function LoginPage() {
       } else {
         alert('Login failed: ' + error)
       }
+    } else {
+      // Successful login - redirect to appropriate page
+      const redirectPath = getDefaultRedirectPath()
+      navigate(redirectPath)
     }
     
     setLoading(false)
@@ -197,9 +210,18 @@ function LoginPage() {
 }
 
 function SignupPage() {
-  const { signUp } = useAuth()
+  const { signUp, user, getDefaultRedirectPath } = useAuth()
+  const navigate = useNavigate()
   const [signingUp, setSigningUp] = useState(false)
   const [signupComplete, setSignupComplete] = useState(false)
+  
+  // Redirect if user is already logged in
+  useEffect(() => {
+    if (user) {
+      const redirectPath = getDefaultRedirectPath()
+      navigate(redirectPath)
+    }
+  }, [user, getDefaultRedirectPath, navigate])
   
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
