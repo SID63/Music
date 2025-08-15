@@ -42,6 +42,17 @@ function ReviewFormWrapper() {
 
 
 function HomePage() {
+  const { user, getDefaultRedirectPath } = useAuth()
+  const navigate = useNavigate()
+  
+  // Redirect logged-in users to their appropriate dashboard
+  useEffect(() => {
+    if (user) {
+      const redirectPath = getDefaultRedirectPath()
+      navigate(redirectPath)
+    }
+  }, [user, getDefaultRedirectPath, navigate])
+  
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       {/* Hero Section */}
