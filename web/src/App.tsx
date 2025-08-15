@@ -158,12 +158,11 @@ function LoginPage() {
       } else {
         alert('Login failed: ' + error)
       }
+      setLoading(false)
     } else {
-      // Successful login - redirect to musician page immediately
-      navigate('/musicians')
+      // Successful login - the useEffect above will handle the redirect when user state updates
+      setLoading(false)
     }
-    
-    setLoading(false)
   }
 
   return (
