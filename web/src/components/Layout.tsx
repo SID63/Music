@@ -44,12 +44,12 @@ export default function Layout() {
           </div>
         </header>
 
-        <main className="container py-6 pb-24 px-3 sm:px-0 md:pt-24">
+        <main className="container py-6 pb-36 md:pb-16 px-3 sm:px-0 md:pt-24">
           <Outlet />
         </main>
 
         <footer
-          className="py-6 mt-12 ui-glass ui-vibrant-border"
+          className="hidden md:block py-6 mt-12 ui-glass ui-vibrant-border"
           role="contentinfo"
           style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
         >

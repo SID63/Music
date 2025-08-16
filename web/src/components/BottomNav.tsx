@@ -1,4 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
+import { createPortal } from 'react-dom';
 import { Users, Guitar, CalendarDays, MessageSquare, User } from 'lucide-react';
 
 const navItems = [
@@ -16,14 +17,14 @@ export default function BottomNav() {
       ? location.pathname === '/'
       : location.pathname === path || location.pathname.startsWith(path + '/');
 
-  return (
+  const content = (
     <nav
       role="navigation"
       aria-label="Primary"
-      className="md:hidden fixed bottom-4 z-[999] left-1/2 -translate-x-1/2 w-[calc(100%-1.5rem)] max-w-md rounded-2xl ui-glass-strong ui-vibrant-border shadow-2xl ring-1 ring-border/60 backdrop-blur"
+      className="md:hidden fixed bottom-4 z-[99999] inset-x-4 rounded-2xl ui-glass-strong ui-vibrant-border shadow-2xl ring-1 ring-border/60 backdrop-blur pointer-events-auto"
       style={{ bottom: 'calc(env(safe-area-inset-bottom) + 1rem)' }}
     >
-      <ul className="grid grid-cols-5">
+      <ul className="mx-auto max-w-md grid grid-cols-5">
         {navItems.map(({ to, label, Icon }) => {
           const active = isActive(to);
           return (
@@ -47,4 +48,10 @@ export default function BottomNav() {
       </ul>
     </nav>
   );
+
+  // Render via portal to avoid parent stacking/overflow issues
+  if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+    return createPortal(content, document.body);
+  }
+  return content;
 }
