@@ -51,6 +51,7 @@ export default function MessagesPage() {
   const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState<'conversations' | 'band-chats'>('conversations');
   const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [conversationSearch, setConversationSearch] = useState('');
   const [bandChats, setBandChats] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
@@ -565,9 +566,21 @@ export default function MessagesPage() {
           
           <TabsContent value="conversations" className="m-0">
             <CardContent className="p-0">
-              <div className="flex h-[calc(100vh-300px)] min-h-[500px] max-h-[800px]">
+              {/* Fill viewport minus header (64px) and bottom nav (~64px) */}
+              <div className="flex h-[calc(100vh-64px-64px)] min-h-[500px]">
                 {/* Conversations List */}
-                <div className="w-1/3 border-r border-gray-200 flex flex-col">
+                <div className={`${selectedConversation ? 'hidden md:flex md:w-1/3' : 'w-full md:w-1/3'} border-r border-gray-200 flex flex-col`}>
+                  {/* Search conversations */}
+                  <div className="p-3 border-b border-gray-100">
+                    <Input
+                      value={conversationSearch}
+                      onChange={(e) => setConversationSearch(e.target.value)}
+                      placeholder="Search conversations"
+                      inputMode="search"
+                      className="h-10"
+                      aria-label="Search conversations"
+                    />
+                  </div>
                   <ScrollArea className="flex-1">
                     {conversations.length === 0 ? (
                       <div className="p-4 text-center text-gray-500">
@@ -575,70 +588,88 @@ export default function MessagesPage() {
                         <p className="text-sm mt-2">Start messaging musicians or event organizers!</p>
                       </div>
                     ) : (
-                      conversations.map((conversation) => (
-                        <div
-                          key={conversation.other_profile.id}
-                          onClick={() => setSelectedConversation(conversation.other_profile.id)}
-                          className={`p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors ${
-                            selectedConversation === conversation.other_profile.id ? 'bg-blue-50 border-blue-200' : ''
-                          }`}
-                        >
-                          <div className="flex items-center space-x-3">
-                            <Avatar className="w-10 h-10">
-                              <AvatarImage src={getAvatarUrl(conversation.other_profile)} />
-                              <AvatarFallback>
-                                {conversation.other_profile.display_name?.[0]?.toUpperCase() || 'U'}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center justify-between">
-                                <Link 
-                                  to={`/musicians/${conversation.other_profile.id}`}
-                                  className="text-sm font-medium text-gray-900 truncate hover:text-blue-600 transition-colors"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  {conversation.other_profile.display_name}
-                                </Link>
-                                {conversation.last_message && (
-                                  <span className="text-xs text-gray-500 ml-2">
-                                    {formatTime(conversation.last_message.created_at)}
-                                  </span>
+                      conversations
+                        .filter((c) =>
+                          conversationSearch.trim()
+                            ? c.other_profile.display_name?.toLowerCase().includes(conversationSearch.toLowerCase()) ||
+                              c.last_message?.content?.toLowerCase().includes(conversationSearch.toLowerCase())
+                            : true
+                        )
+                        .map((conversation) => (
+                          <div
+                            key={conversation.other_profile.id}
+                            onClick={() => setSelectedConversation(conversation.other_profile.id)}
+                            className={`p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors ${
+                              selectedConversation === conversation.other_profile.id ? 'bg-blue-50 border-blue-200' : ''
+                            }`}
+                          >
+                            <div className="flex items-center space-x-3">
+                              <Avatar className="w-10 h-10">
+                                <AvatarImage src={getAvatarUrl(conversation.other_profile)} />
+                                <AvatarFallback>
+                                  {conversation.other_profile.display_name?.[0]?.toUpperCase() || 'U'}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between">
+                                  <Link 
+                                    to={`/musicians/${conversation.other_profile.id}`}
+                                    className="text-sm font-medium text-gray-900 truncate hover:text-blue-600 transition-colors"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    {conversation.other_profile.display_name}
+                                  </Link>
+                                  {conversation.last_message && (
+                                    <span className="text-xs text-gray-500 ml-2">
+                                      {formatTime(conversation.last_message.created_at)}
+                                    </span>
+                                  )}
+                                </div>
+                                {conversation.last_message ? (
+                                  <p className="text-xs text-gray-600 truncate mt-1">
+                                    {conversation.last_message.sender_profile_id === profile?.id ? 'You: ' : ''}
+                                    {conversation.last_message.content}
+                                  </p>
+                                ) : (
+                                  <p className="text-xs text-gray-400 italic mt-1">
+                                    No messages yet
+                                  </p>
                                 )}
-                              </div>
-                              {conversation.last_message ? (
-                                <p className="text-xs text-gray-600 truncate mt-1">
-                                  {conversation.last_message.sender_profile_id === profile?.id ? 'You: ' : ''}
-                                  {conversation.last_message.content}
-                                </p>
-                              ) : (
-                                <p className="text-xs text-gray-400 italic mt-1">
-                                  No messages yet
-                                </p>
-                              )}
-                              <div className="flex items-center justify-between mt-1">
-                                <Badge variant="secondary" className="text-xs capitalize">
-                                  {conversation.other_profile.role}
-                                </Badge>
-                                {conversation.unread_count > 0 && (
-                                  <Badge className="bg-blue-600 text-white text-xs">
-                                    {conversation.unread_count}
+                                <div className="flex items-center justify-between mt-1">
+                                  <Badge variant="secondary" className="text-xs capitalize">
+                                    {conversation.other_profile.role}
                                   </Badge>
-                                )}
+                                  {conversation.unread_count > 0 && (
+                                    <Badge className="bg-blue-600 text-white text-xs">
+                                      {conversation.unread_count}
+                                    </Badge>
+                                  )}
+                                </div>
                               </div>
                             </div>
                           </div>
-                        </div>
-                      ))
+                        ))
                     )}
                   </ScrollArea>
                 </div>
                 
                 {/* Messages Area */}
-                <div className="flex-1 flex flex-col min-h-0">
+                <div className={`${selectedConversation ? 'flex' : 'hidden md:flex'} flex-1 flex-col min-h-0`}>
                   {selectedConversation ? (
                     <>
                       {/* Individual Conversation Header */}
-                      <div className="p-4 border-b border-gray-200 flex-shrink-0">
+                      <div className="p-4 border-b border-gray-200 flex items-center gap-3 flex-shrink-0">
+                        {/* Back button for mobile */}
+                        <button
+                          type="button"
+                          className="md:hidden inline-flex items-center justify-center w-9 h-9 rounded-full hover:bg-gray-100"
+                          onClick={() => setSelectedConversation(null)}
+                          aria-label="Back to conversations"
+                        >
+                          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M15 18l-6-6 6-6" />
+                          </svg>
+                        </button>
                         <div className="flex items-center space-x-3">
                           {(() => {
                             const conversation = conversations.find(c => c.other_profile.id === selectedConversation);
@@ -677,7 +708,7 @@ export default function MessagesPage() {
                               key={message.id}
                               className={`flex ${message.sender_profile_id === profile?.id ? 'justify-end' : 'justify-start'}`}
                             >
-                              <div className={`max-w-xs lg:max-w-md px-3 py-2 rounded-lg ${
+                              <div className={`max-w-[80%] md:max-w-md px-3 py-2 rounded-2xl ${
                                 message.sender_profile_id === profile?.id
                                   ? 'bg-blue-600 text-white'
                                   : 'bg-gray-100 text-gray-900'
@@ -697,7 +728,7 @@ export default function MessagesPage() {
                       </ScrollArea>
                       
                       {/* Message Input */}
-                      <div className="p-4 border-t border-gray-200 flex-shrink-0">
+                      <div className="p-4 border-t border-gray-200 flex-shrink-0 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
                         <div className="space-y-3">
                           {/* File URL Input */}
                           <div className="flex items-center space-x-2">
@@ -728,7 +759,7 @@ export default function MessagesPage() {
                             onChange={(e) => setNewMessage(e.target.value)}
                             onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage()}
                             placeholder="Type your message..."
-                            className="min-h-[80px] resize-none"
+                            className="min-h-[64px] resize-none"
                             disabled={sending}
                           />
                           <div className="flex justify-between items-center">
@@ -761,9 +792,9 @@ export default function MessagesPage() {
           
           <TabsContent value="band-chats" className="m-0">
             <CardContent className="p-0">
-              <div className="flex h-[calc(100vh-300px)] min-h-[500px] max-h-[800px]">
+              <div className="flex h-[calc(100vh-64px-64px)] min-h-[500px]">
                 {/* Band Chats List */}
-                <div className="w-1/3 border-r border-gray-200 flex flex-col">
+                <div className={`${selectedBandChat ? 'hidden md:flex md:w-1/3' : 'w-full md:w-1/3'} border-r border-gray-200 flex flex-col`}>
                   <ScrollArea className="flex-1">
                     {bandChats.length === 0 ? (
                       <div className="p-4 text-center text-gray-500">

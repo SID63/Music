@@ -17,7 +17,12 @@ export default function BottomNav() {
       : location.pathname === path || location.pathname.startsWith(path + '/');
 
   return (
-    <nav className="md:hidden fixed bottom-0 inset-x-0 z-50 border-t border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/75 ui-glass ui-vibrant-border">
+    <nav
+      role="navigation"
+      aria-label="Primary"
+      className="fixed bottom-0 inset-x-0 z-50 border-t border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/75 ui-glass ui-vibrant-border"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+    >
       <ul className="grid grid-cols-5">
         {navItems.map(({ to, label, Icon }) => {
           const active = isActive(to);
@@ -25,7 +30,7 @@ export default function BottomNav() {
             <li key={to}>
               <Link
                 to={to}
-                className={`flex flex-col items-center justify-center py-2.5 gap-1 text-xs transition-colors ${
+                className={`flex flex-col items-center justify-center py-3 min-h-12 gap-1 text-xs transition-colors ${
                   active ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
                 }`}
                 aria-current={active ? 'page' : undefined}

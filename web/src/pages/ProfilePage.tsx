@@ -55,13 +55,13 @@ export default function ProfilePage() {
 
   if (!profile) {
     return (
-      <div className="max-w-2xl mx-auto space-y-6">
+      <div className="max-w-2xl mx-auto space-y-6 px-4 sm:px-0">
         <h2 className="text-2xl font-semibold text-foreground">Create Your Profile</h2>
         <div className="bg-card ui-glass ui-vibrant-border border border-border rounded-lg p-6 text-center">
           <p className="text-muted-foreground mb-4">Let's set up your profile so you can book gigs or post events.</p>
           <Link
             to="/setup"
-            className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+            className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium w-full sm:w-auto min-h-12"
           >
             Go to Profile Setup
           </Link>
@@ -73,7 +73,7 @@ export default function ProfilePage() {
   // Show profile completion notice if incomplete
   if (isProfileIncomplete()) {
     return (
-      <div className="max-w-2xl mx-auto space-y-6">
+      <div className="max-w-2xl mx-auto space-y-6 px-4 sm:px-0">
         <h2 className="text-2xl font-semibold text-foreground">Complete Your Profile</h2>
         
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
@@ -82,7 +82,7 @@ export default function ProfilePage() {
           </p>
           <Link
             to="/setup"
-            className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+            className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium w-full sm:w-auto min-h-12"
           >
             Complete Profile Setup
           </Link>
@@ -308,12 +308,12 @@ export default function ProfilePage() {
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                 </div>
               ) : userBands.length === 0 ? (
-                <div className="text-center py-8">
+                <div className="text-center py-8 p-6 sm:p-8">
                   <div className="text-muted-foreground text-4xl mb-4">🎸</div>
                   <p className="text-muted-foreground mb-4">You're not part of any bands yet</p>
                   <Link
                     to="/bands"
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium w-full sm:w-auto min-h-11 text-center"
                   >
                     Explore Bands
                   </Link>

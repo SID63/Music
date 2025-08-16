@@ -56,9 +56,21 @@ export default function EventCard({ event, className = '' }: EventCardProps) {
     return `${formatTime(start)} - ${formatTime(end)}`;
   };
 
+  const formatCurrency = (n: number) => {
+    try {
+      return new Intl.NumberFormat(undefined, { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(n);
+    } catch {
+      return `₹${n}`;
+    }
+  };
+
   return (
     <div className={`ui-glass ui-vibrant-border rounded-xl overflow-hidden transition-shadow duration-200 ui-noise ${className}`}>
-      <Link to={`/events/${id}`} className="block h-full">
+      <Link
+        to={`/events/${id}`}
+        className="block h-full"
+        aria-label={`View details for ${title}`}
+      >
         <div className="p-3 sm:p-6 h-full flex flex-col">
           <div className="flex-1">
             <div className="flex justify-between items-start gap-2">
@@ -87,10 +99,10 @@ export default function EventCard({ event, className = '' }: EventCardProps) {
               <div className="mt-1.5 sm:mt-2">
                 <span className="text-sm font-medium text-foreground">
                   {budget_min && budget_max 
-                    ? `₹${budget_min} - ₹${budget_max}` 
+                    ? `${formatCurrency(budget_min)} - ${formatCurrency(budget_max)}` 
                     : budget_min 
-                      ? `From ₹${budget_min}` 
-                      : `Up to ₹${budget_max}`}
+                      ? `From ${formatCurrency(budget_min)}` 
+                      : `Up to ${formatCurrency(budget_max as number)}`}
                 </span>
               </div>
             )}
@@ -98,7 +110,7 @@ export default function EventCard({ event, className = '' }: EventCardProps) {
           </div>
 
           <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-border">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col items-start gap-1 sm:flex-row sm:items-center sm:justify-between">
               <span className="text-sm text-muted-foreground">View details</span>
               <span className="inline-flex items-center text-sm font-medium text-primary hover:text-primary/80">
                 Learn more

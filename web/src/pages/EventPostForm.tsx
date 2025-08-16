@@ -14,6 +14,17 @@ declare module 'uuid' {
   export function v4(): string;
 }
 
+// Helper: format to input[type="datetime-local"] expected local format (YYYY-MM-DDTHH:MM)
+function formatForDatetimeLocal(date: Date) {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const y = date.getFullYear();
+  const m = pad(date.getMonth() + 1);
+  const d = pad(date.getDate());
+  const h = pad(date.getHours());
+  const mi = pad(date.getMinutes());
+  return `${y}-${m}-${d}T${h}:${mi}`;
+}
+
 export default function EventPostForm() {
   const { profile } = useAuth();
   const navigate = useNavigate();
@@ -22,6 +33,7 @@ export default function EventPostForm() {
   const [showActionSelector, setShowActionSelector] = useState(true); // Start with action selector
   const [selectedActionType, setSelectedActionType] = useState<'individual' | 'band'>('individual');
   const [selectedBandId, setSelectedBandId] = useState<string | undefined>(undefined);
+  const [startsAtValue, setStartsAtValue] = useState<string>('');
 
   const handleActionSelect = (actionType: 'individual' | 'band', bandId?: string) => {
     console.log('Action selected:', actionType, 'Band ID:', bandId);
@@ -265,8 +277,11 @@ export default function EventPostForm() {
                   name="title"
                   type="text"
                   placeholder="e.g., Summer Music Festival, Wedding Reception, Corporate Event"
-                  className="w-full px-6 py-4 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200 text-lg"
+                  className="w-full px-6 py-4 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200 text-lg min-h-12"
+                  autoComplete="off"
+                  inputMode="text"
                   required
+                  aria-required="true"
                 />
               </div>
 
@@ -291,7 +306,7 @@ export default function EventPostForm() {
                   <select
                     id="event_type"
                     name="event_type"
-                    className="w-full px-6 py-4 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200"
+                    className="w-full px-6 py-4 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200 min-h-12"
                   >
                     <option value="gig">🎵 Gig/Performance</option>
                     <option value="wedding">💒 Wedding</option>
@@ -312,7 +327,8 @@ export default function EventPostForm() {
                     name="genres"
                     type="text"
                     placeholder="e.g., Jazz, Rock, Classical, Pop (comma-separated)"
-                    className="w-full px-6 py-4 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200"
+                    className="w-full px-6 py-4 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200 min-h-12"
+                    inputMode="text"
                   />
                 </div>
               </div>
@@ -339,11 +355,13 @@ export default function EventPostForm() {
                   name="location"
                   type="text"
                   placeholder="e.g., Central Park, Grand Hotel, 123 Main Street"
-                  className="w-full px-6 py-4 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-green-100 focus:border-green-500 transition-all duration-200"
+                  className="w-full px-6 py-4 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-green-100 focus:border-green-500 transition-all duration-200 min-h-12"
+                  autoComplete="street-address"
+                  inputMode="text"
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                 <div>
                   <label htmlFor="starts_at" className="block text-lg font-semibold text-gray-700 mb-3">
                     Start Date & Time <span className="text-red-500">*</span>
@@ -352,45 +370,36 @@ export default function EventPostForm() {
                     id="starts_at"
                     name="starts_at"
                     type="datetime-local"
-                    min={new Date().toISOString().slice(0, 16)}
-                    className="w-full px-6 py-4 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-green-100 focus:border-green-500 transition-all duration-200"
+                    className="w-full px-6 py-4 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-green-100 focus:border-green-500 transition-all duration-200 min-h-12"
+                    min={formatForDatetimeLocal(new Date())}
                     required
-                    onChange={(e) => {
-                      const start = new Date(e.target.value);
-                      const endsInput = document.getElementById('ends_at') as HTMLInputElement | null;
-                      if (endsInput && e.target.value) {
-                        endsInput.min = e.target.value;
-                        endsInput.setCustomValidity('');
-                      }
-                    }}
+                    aria-required="true"
+                    aria-describedby="starts_at_help"
+                    onChange={(e) => setStartsAtValue(e.target.value)}
                   />
+                  <p id="starts_at_help" className="mt-2 text-sm text-gray-500">Start must be in the future.</p>
                 </div>
 
                 <div>
                   <label htmlFor="ends_at" className="block text-lg font-semibold text-gray-700 mb-3">
-                    End Date & Time
+                    End Date & Time <span className="text-red-500">*</span>
                   </label>
                   <input
                     id="ends_at"
                     name="ends_at"
                     type="datetime-local"
-                    className="w-full px-6 py-4 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-green-100 focus:border-green-500 transition-all duration-200"
+                    className="w-full px-6 py-4 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-green-100 focus:border-green-500 transition-all duration-200 min-h-12"
+                    min={(startsAtValue || formatForDatetimeLocal(new Date()))}
                     required
-                    onChange={(e) => {
-                      const endDate = new Date(e.target.value);
-                      const startInput = document.getElementById('starts_at') as HTMLInputElement;
-                      if (startInput && startInput.value && endDate <= new Date(startInput.value)) {
-                        e.target.setCustomValidity('End date must be after start date');
-                      } else {
-                        e.target.setCustomValidity('');
-                      }
-                    }}
+                    aria-required="true"
+                    aria-describedby="ends_at_help"
                   />
+                  <p id="ends_at_help" className="mt-2 text-sm text-gray-500">End must be after start.</p>
                 </div>
               </div>
             </div>
 
-            {/* Budget Information */}
+            {/* Budget & Compensation */}
             <div className="space-y-6">
               <div className="flex items-center gap-3 pb-4 border-b-2 border-gray-100">
                 <div className="w-10 h-10 bg-gradient-to-r from-yellow-500 to-orange-600 rounded-full flex items-center justify-center">
@@ -414,7 +423,7 @@ export default function EventPostForm() {
                     pattern="[0-9]*"
                     min="0"
                     placeholder="e.g., 200"
-                    className="w-full px-6 py-4 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-yellow-100 focus:border-yellow-500 transition-all duration-200"
+                    className="w-full px-6 py-4 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-yellow-100 focus:border-yellow-500 transition-all duration-200 min-h-12"
                     onChange={(e) => {
                       const min = Number(e.target.value);
                       const maxInput = document.getElementById('budget_max') as HTMLInputElement;
@@ -439,7 +448,7 @@ export default function EventPostForm() {
                     pattern="[0-9]*"
                     min="0"
                     placeholder="e.g., 1000"
-                    className="w-full px-6 py-4 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-yellow-100 focus:border-yellow-500 transition-all duration-200"
+                    className="w-full px-6 py-4 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-yellow-100 focus:border-yellow-500 transition-all duration-200 min-h-12"
                     onChange={(e) => {
                       const max = Number(e.target.value);
                       const minInput = document.getElementById('budget_min') as HTMLInputElement;
@@ -475,7 +484,9 @@ export default function EventPostForm() {
                     name="contact_email"
                     type="email"
                     placeholder="your@email.com"
-                    className="w-full px-6 py-4 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-purple-100 focus:border-purple-500 transition-all duration-200"
+                    className="w-full px-6 py-4 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-purple-100 focus:border-purple-500 transition-all duration-200 min-h-12"
+                    inputMode="email"
+                    autoComplete="email"
                   />
                 </div>
 
@@ -489,7 +500,8 @@ export default function EventPostForm() {
                     type="tel"
                     inputMode="tel"
                     placeholder="(555) 123-4567"
-                    className="w-full px-6 py-4 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-purple-100 focus:border-purple-500 transition-all duration-200"
+                    className="w-full px-6 py-4 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-purple-100 focus:border-purple-500 transition-all duration-200 min-h-12"
+                    autoComplete="tel"
                   />
                 </div>
               </div>
@@ -565,6 +577,7 @@ export default function EventPostForm() {
                 type="button"
                 onClick={() => navigate('/events')}
                 className="flex-1 px-8 py-4 border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 font-semibold text-lg w-full sm:w-auto min-h-12"
+                aria-label="Cancel and go back to events"
               >
                 Cancel
               </button>

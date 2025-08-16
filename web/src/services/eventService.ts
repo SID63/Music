@@ -127,31 +127,46 @@ export const eventService = {
       .select('id, display_name, bio, genres')
       .in('id', musicianIds);
 
-    const applications = bookings.map(booking => {
-      const profile = musicianProfiles?.find(p => p.id === booking.musician_profile_id);
-      const event = events.find(e => e.id === booking.event_id);
+    const applications: EventApplication[] = bookings.map(booking => {
+      const foundProfile = musicianProfiles?.find(p => p.id === booking.musician_profile_id);
+      const profile = foundProfile
+        ? {
+            id: foundProfile.id,
+            display_name: foundProfile.display_name ?? 'Unknown Musician',
+            bio: foundProfile.bio ?? null,
+            genres: foundProfile.genres ?? null,
+          }
+        : {
+            id: booking.musician_profile_id,
+            display_name: 'Unknown Musician',
+            bio: null,
+            genres: null,
+          };
+
+      const event = events.find(e => e.id === booking.event_id) || {
+        id: booking.event_id,
+        title: 'Unknown Event',
+        description: null,
+        location: null,
+        starts_at: 'Unknown Date',
+        ends_at: null,
+        budget_min: null,
+        budget_max: null,
+        created_at: '',
+        organizer_profile_id: '',
+        organizer: undefined,
+      } as Event;
 
       return {
-        ...booking,
-        musician_profile: profile || {
-          id: booking.musician_profile_id,
-          display_name: 'Unknown Musician',
-          bio: null,
-          genres: null
-        },
-        event: event || {
-          id: booking.event_id,
-          title: 'Unknown Event',
-          description: null,
-          location: null,
-          starts_at: 'Unknown Date',
-          ends_at: null,
-          budget_min: null,
-          budget_max: null,
-          created_at: '',
-          organizer_profile_id: '',
-          organizer: undefined,
-        }
+        id: booking.id,
+        event_id: booking.event_id,
+        musician_profile_id: booking.musician_profile_id,
+        created_at: booking.created_at,
+        scheduled_start: booking.scheduled_start ?? null,
+        scheduled_end: booking.scheduled_end ?? null,
+        status: booking.status as EventApplication['status'],
+        musician_profile: profile,
+        event,
       };
     });
 
@@ -249,7 +264,10 @@ export const eventService = {
   },
 
   // Update application status
-  async updateApplicationStatus(applicationId: string, status: string): Promise<{ error: any }> {
+  async updateApplicationStatus(
+    applicationId: string,
+    status: NonNullable<EventApplication['status']>
+  ): Promise<{ error: any }> {
     const { error } = await supabase
       .from('bookings')
       .update({ status })

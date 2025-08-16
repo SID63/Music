@@ -25,7 +25,7 @@ export default function MainNav() {
   ];
 
   return (
-    <nav className="hidden md:flex items-center space-x-1">
+    <nav className="hidden md:flex items-center space-x-1" role="navigation" aria-label="Primary">
       {navItems.map((item) => {
         const active = isActive(item.to, item.matchExact);
         return (
@@ -44,7 +44,7 @@ export default function MainNav() {
               active ? 'shadow-sm' : ''
             )}
           >
-            <Link to={item.to} className="relative">
+            <Link to={item.to} className="relative" aria-current={active ? 'page' : undefined} aria-label={item.label}>
               <div className="flex items-center gap-2">
                 <span className={cn(
                   'transition-transform duration-200',

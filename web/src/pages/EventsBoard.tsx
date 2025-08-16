@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Plus, Search, Filter, X } from 'lucide-react';
@@ -41,6 +41,21 @@ export default function EventsBoard() {
     withBudget: false,
     upcomingOnly: false,
   });
+
+  // Dialog refs for a11y focus management
+  const mobileFiltersRef = useRef<HTMLDivElement>(null);
+  const sortDialogRef = useRef<HTMLDivElement>(null);
+  const advancedFiltersRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (isMobileFiltersOpen) mobileFiltersRef.current?.focus();
+  }, [isMobileFiltersOpen]);
+  useEffect(() => {
+    if (isSortOpen) sortDialogRef.current?.focus();
+  }, [isSortOpen]);
+  useEffect(() => {
+    if (isAdvancedFiltersOpen) advancedFiltersRef.current?.focus();
+  }, [isAdvancedFiltersOpen]);
 
   useEffect(() => {
     const load = async () => {
@@ -156,6 +171,7 @@ export default function EventsBoard() {
               size="sm" 
               className="w-full min-h-11"
               onClick={() => setIsSortOpen(true)}
+              aria-label="Open sort options"
             >
               Sort
             </Button>
@@ -164,6 +180,7 @@ export default function EventsBoard() {
               size="sm" 
               className="w-full min-h-11"
               onClick={() => setIsMobileFiltersOpen(true)}
+              aria-label="Open filters"
             >
               <Filter className="mr-2 h-4 w-4" />
               Filters
@@ -196,13 +213,24 @@ export default function EventsBoard() {
         {/* Mobile filters */}
         {isMobileFiltersOpen && (
           <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 sm:hidden">
-            <div className="ui-glass ui-vibrant-border rounded-lg w-full max-w-md max-h-[80vh] flex flex-col ui-noise bg-card/90 border border-border shadow-xl">
+            <div
+              className="ui-glass ui-vibrant-border rounded-lg w-full max-w-md max-h-[80vh] flex flex-col ui-noise bg-card/90 border border-border shadow-xl"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="mobile-filters-title"
+              tabIndex={-1}
+              ref={mobileFiltersRef}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') setIsMobileFiltersOpen(false);
+              }}
+            >
               <div className="p-4 border-b border-border flex items-center justify-between">
-                <h3 className="font-medium">Filters</h3>
+                <h3 id="mobile-filters-title" className="font-medium">Filters</h3>
                 <Button 
                   variant="ghost" 
                   size="icon" 
                   onClick={() => setIsMobileFiltersOpen(false)}
+                  aria-label="Close filters"
                 >
                   <X className="h-5 w-5" />
                 </Button>
@@ -281,7 +309,7 @@ export default function EventsBoard() {
         {/* All Events Tab */}
         <TabsContent value="all">
           {isLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-4 lg:gap-6">
               {[...Array(6)].map((_, i) => (
                 <EventCardSkeleton key={i} />
               ))}
@@ -309,7 +337,7 @@ export default function EventsBoard() {
               )}
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-4 lg:gap-6">
               {sortedEvents.map((event) => (
                 <EventCard key={event.id} event={event} />
               ))}
@@ -320,7 +348,7 @@ export default function EventsBoard() {
         {/* My Events Tab */}
         <TabsContent value="my-events">
           {isLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-4 lg:gap-6">
               {[...Array(3)].map((_, i) => (
                 <EventCardSkeleton key={i} />
               ))}
@@ -346,7 +374,7 @@ export default function EventsBoard() {
               )}
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-4 lg:gap-6">
               {myEvents.map((event) => (
                 <EventCard key={event.id} event={event} />
               ))}
@@ -411,9 +439,19 @@ export default function EventsBoard() {
       {/* Sort Modal */}
       {isSortOpen && (
         <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
-          <div className="ui-glass ui-vibrant-border rounded-lg w-full max-w-md max-h-[80vh] flex flex-col ui-noise bg-card/90 border border-border shadow-xl">
+          <div
+            className="ui-glass ui-vibrant-border rounded-lg w-full max-w-md max-h-[80vh] flex flex-col ui-noise bg-card/90 border border-border shadow-xl"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="sort-modal-title"
+            tabIndex={-1}
+            ref={sortDialogRef}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') setIsSortOpen(false);
+            }}
+          >
             <div className="p-4 border-b border-border flex items-center justify-between">
-              <h3 className="font-medium">Sort</h3>
+              <h3 id="sort-modal-title" className="font-medium">Sort</h3>
               <Button variant="ghost" size="icon" onClick={() => setIsSortOpen(false)}>
                 <X className="h-5 w-5" />
               </Button>
@@ -446,9 +484,19 @@ export default function EventsBoard() {
       {/* Advanced Filters Modal */}
       {isAdvancedFiltersOpen && (
         <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
-          <div className="ui-glass ui-vibrant-border rounded-lg w-full max-w-2xl max-h-[85vh] flex flex-col ui-noise bg-card/90 border border-border shadow-xl">
+          <div
+            className="ui-glass ui-vibrant-border rounded-lg w-full max-w-2xl max-h-[85vh] flex flex-col ui-noise bg-card/90 border border-border shadow-xl"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="advanced-filters-title"
+            tabIndex={-1}
+            ref={advancedFiltersRef}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') setIsAdvancedFiltersOpen(false);
+            }}
+          >
             <div className="p-4 border-b border-border flex items-center justify-between">
-              <h3 className="font-medium">Advanced Filters</h3>
+              <h3 id="advanced-filters-title" className="font-medium">Advanced Filters</h3>
               <Button variant="ghost" size="icon" onClick={() => setIsAdvancedFiltersOpen(false)}>
                 <X className="h-5 w-5" />
               </Button>
