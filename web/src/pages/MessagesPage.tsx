@@ -566,8 +566,8 @@ export default function MessagesPage() {
           
           <TabsContent value="conversations" className="m-0">
             <CardContent className="p-0">
-              {/* Fill viewport minus header (64px) and bottom nav (~64px) */}
-              <div className="flex h-[calc(100vh-64px-64px)] min-h-[500px]">
+              {/* Fill viewport minus header (64px). On mobile also minus bottom nav (~64px). */}
+              <div className="flex h-[calc(100vh-64px-64px)] md:h-[calc(100vh-64px)] min-h-[500px]">
                 {/* Conversations List */}
                 <div className={`${selectedConversation ? 'hidden md:flex md:w-1/3' : 'w-full md:w-1/3'} border-r border-gray-200 flex flex-col`}>
                   {/* Search conversations */}
@@ -792,7 +792,7 @@ export default function MessagesPage() {
           
           <TabsContent value="band-chats" className="m-0">
             <CardContent className="p-0">
-              <div className="flex h-[calc(100vh-64px-64px)] min-h-[500px]">
+              <div className="flex h-[calc(100vh-64px-64px)] md:h-[calc(100vh-64px)] min-h-[500px]">
                 {/* Band Chats List */}
                 <div className={`${selectedBandChat ? 'hidden md:flex md:w-1/3' : 'w-full md:w-1/3'} border-r border-gray-200 flex flex-col`}>
                   <ScrollArea className="flex-1">

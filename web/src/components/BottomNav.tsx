@@ -20,8 +20,8 @@ export default function BottomNav() {
     <nav
       role="navigation"
       aria-label="Primary"
-      className="fixed bottom-0 inset-x-0 z-50 border-t border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/75 ui-glass ui-vibrant-border"
-      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      className="md:hidden fixed z-[100] left-1/2 -translate-x-1/2 w-[calc(100%-1.5rem)] max-w-md rounded-2xl ui-glass-strong ui-vibrant-border shadow-xl"
+      style={{ bottom: 'calc(env(safe-area-inset-bottom) + 1rem)' }}
     >
       <ul className="grid grid-cols-5">
         {navItems.map(({ to, label, Icon }) => {
@@ -31,12 +31,15 @@ export default function BottomNav() {
               <Link
                 to={to}
                 className={`flex flex-col items-center justify-center py-3 min-h-12 gap-1 text-xs transition-colors ${
-                  active ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+                  active
+                    ? 'text-primary'
+                    : 'text-muted-foreground hover:text-foreground'
                 }`}
                 aria-current={active ? 'page' : undefined}
+                aria-label={label}
               >
-                <Icon className={`h-5 w-5 ${active ? '' : 'opacity-90'}`} />
-                <span className="leading-none">{label}</span>
+                <Icon className={`h-5 w-5 ${active ? 'text-primary' : ''}`} />
+                <span className="text-[11px] leading-none">{label}</span>
               </Link>
             </li>
           );

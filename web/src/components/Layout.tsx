@@ -2,6 +2,7 @@ import { Outlet } from 'react-router-dom';
 import { Toaster } from 'sonner';
 // Using emoji as a fallback for now
 import MainNav from './MainNav';
+import { useEffect, useState } from 'react';
 import { ModeToggle } from './mode-toggle';
 import AuthNav from './AuthNav';
 import { cn } from '@/lib/utils';
@@ -9,15 +10,24 @@ import { AppearanceProvider } from './AppearanceProvider';
 import BottomNav from './BottomNav';
 
 export default function Layout() {
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
   return (
     <AppearanceProvider>
-      <div className="min-h-screen bg-background font-sans antialiased relative app-flair overflow-x-hidden">
+      <div className="min-h-screen bg-background font-sans antialiased relative app-flair overflow-x-hidden transform-none">
         <header
-          className="w-full z-50 ui-glass-strong ui-vibrant-border md:fixed md:top-0 md:inset-x-0"
+          className="hidden md:block fixed top-4 inset-x-0 z-[100] w-full bg-transparent pointer-events-none"
           role="banner"
           style={{ paddingTop: 'env(safe-area-inset-top)' }}
         >
-          <div className="container flex h-16 items-center justify-between px-4">
+          <div className={`container max-w-6xl mx-auto flex h-16 items-center justify-between px-4 rounded-2xl ui-glass-strong ui-vibrant-border pointer-events-auto transition-shadow duration-200 ${scrolled ? 'shadow-2xl ring-1 ring-border/60' : 'shadow-xl'}`}>
             <div className="flex items-center gap-6">
               <div className="flex items-center space-x-2">
                 <span className="text-2xl">🎵</span>
@@ -34,7 +44,7 @@ export default function Layout() {
           </div>
         </header>
 
-        <main className="container py-6 pb-24 px-3 sm:px-0 md:pt-20">
+        <main className="container py-6 pb-24 px-3 sm:px-0 md:pt-24">
           <Outlet />
         </main>
 
