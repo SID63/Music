@@ -277,7 +277,7 @@ export default function EventPostForm() {
                   name="title"
                   type="text"
                   placeholder="e.g., Summer Music Festival, Wedding Reception, Corporate Event"
-                  className="w-full px-6 py-4 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200 text-lg min-h-12"
+                  className="w-full px-6 py-4 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200 text-lg min-h-12 text-foreground placeholder:text-foreground/70 font-medium"
                   autoComplete="off"
                   inputMode="text"
                   required
@@ -294,7 +294,7 @@ export default function EventPostForm() {
                   name="description"
                   rows={5}
                   placeholder="Describe your event, the atmosphere you're looking for, and what makes it special..."
-                  className="w-full px-6 py-4 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200 resize-none"
+                  className="w-full px-6 py-4 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200 resize-none text-foreground placeholder:text-foreground/70 font-medium"
                 />
               </div>
 
@@ -306,7 +306,7 @@ export default function EventPostForm() {
                   <select
                     id="event_type"
                     name="event_type"
-                    className="w-full px-6 py-4 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200 min-h-12"
+                    className="w-full px-6 py-4 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200 min-h-12 text-foreground placeholder:text-foreground/70 font-medium"
                   >
                     <option value="gig">🎵 Gig/Performance</option>
                     <option value="wedding">💒 Wedding</option>
@@ -327,7 +327,7 @@ export default function EventPostForm() {
                     name="genres"
                     type="text"
                     placeholder="e.g., Jazz, Rock, Classical, Pop (comma-separated)"
-                    className="w-full px-6 py-4 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200 min-h-12"
+                    className="w-full px-6 py-4 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200 min-h-12 text-foreground placeholder:text-foreground/70 font-medium"
                     inputMode="text"
                   />
                 </div>
@@ -355,7 +355,7 @@ export default function EventPostForm() {
                   name="location"
                   type="text"
                   placeholder="e.g., Central Park, Grand Hotel, 123 Main Street"
-                  className="w-full px-6 py-4 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-green-100 focus:border-green-500 transition-all duration-200 min-h-12"
+                  className="w-full px-6 py-4 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-green-100 focus:border-green-500 transition-all duration-200 min-h-12 text-foreground placeholder:text-foreground/70 font-medium"
                   autoComplete="street-address"
                   inputMode="text"
                 />
@@ -370,7 +370,7 @@ export default function EventPostForm() {
                     id="starts_at"
                     name="starts_at"
                     type="datetime-local"
-                    className="w-full px-6 py-4 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-green-100 focus:border-green-500 transition-all duration-200 min-h-12"
+                    className="w-full px-6 py-4 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-green-100 focus:border-green-500 transition-all duration-200 min-h-12 text-foreground placeholder:text-foreground/70 font-medium"
                     min={formatForDatetimeLocal(new Date())}
                     required
                     aria-required="true"
@@ -388,7 +388,7 @@ export default function EventPostForm() {
                     id="ends_at"
                     name="ends_at"
                     type="datetime-local"
-                    className="w-full px-6 py-4 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-green-100 focus:border-green-500 transition-all duration-200 min-h-12"
+                    className="w-full px-6 py-4 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-green-100 focus:border-green-500 transition-all duration-200 min-h-12 text-foreground placeholder:text-foreground/70 font-medium"
                     min={(startsAtValue || formatForDatetimeLocal(new Date()))}
                     required
                     aria-required="true"
@@ -423,7 +423,7 @@ export default function EventPostForm() {
                     pattern="[0-9]*"
                     min="0"
                     placeholder="e.g., 200"
-                    className="w-full px-6 py-4 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-yellow-100 focus:border-yellow-500 transition-all duration-200 min-h-12"
+                    className="w-full px-6 py-4 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-yellow-100 focus:border-yellow-500 transition-all duration-200 min-h-12 text-foreground placeholder:text-foreground/70 font-medium"
                     onChange={(e) => {
                       const min = Number(e.target.value);
                       const maxInput = document.getElementById('budget_max') as HTMLInputElement;
@@ -448,7 +448,7 @@ export default function EventPostForm() {
                     pattern="[0-9]*"
                     min="0"
                     placeholder="e.g., 1000"
-                    className="w-full px-6 py-4 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-yellow-100 focus:border-yellow-500 transition-all duration-200 min-h-12"
+                    className="w-full px-6 py-4 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-yellow-100 focus:border-yellow-500 transition-all duration-200 min-h-12 text-foreground placeholder:text-foreground/70 font-medium"
                     onChange={(e) => {
                       const max = Number(e.target.value);
                       const minInput = document.getElementById('budget_min') as HTMLInputElement;
@@ -484,7 +484,7 @@ export default function EventPostForm() {
                     name="contact_email"
                     type="email"
                     placeholder="your@email.com"
-                    className="w-full px-6 py-4 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-purple-100 focus:border-purple-500 transition-all duration-200 min-h-12"
+                    className="w-full px-6 py-4 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-purple-100 focus:border-purple-500 transition-all duration-200 min-h-12 text-foreground placeholder:text-foreground/70 font-medium"
                     inputMode="email"
                     autoComplete="email"
                   />
@@ -500,7 +500,7 @@ export default function EventPostForm() {
                     type="tel"
                     inputMode="tel"
                     placeholder="(555) 123-4567"
-                    className="w-full px-6 py-4 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-purple-100 focus:border-purple-500 transition-all duration-200 min-h-12"
+                    className="w-full px-6 py-4 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-purple-100 focus:border-purple-500 transition-all duration-200 min-h-12 text-foreground placeholder:text-foreground/70 font-medium"
                     autoComplete="tel"
                   />
                 </div>
@@ -527,7 +527,7 @@ export default function EventPostForm() {
                   name="requirements"
                   rows={4}
                   placeholder="e.g., Must bring own instruments, Dress code: formal, Experience level required..."
-                  className="w-full px-6 py-4 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 transition-all duration-200 resize-none"
+                  className="w-full px-6 py-4 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 transition-all duration-200 resize-none text-foreground placeholder:text-foreground/70 font-medium"
                 />
               </div>
 
@@ -540,7 +540,7 @@ export default function EventPostForm() {
                   name="equipment_provided"
                   rows={3}
                   placeholder="e.g., PA system, microphones, stage lighting, power outlets..."
-                  className="w-full px-6 py-4 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 transition-all duration-200 resize-none"
+                  className="w-full px-6 py-4 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 transition-all duration-200 resize-none text-foreground placeholder:text-foreground/70 font-medium"
                 />
               </div>
 
@@ -553,7 +553,7 @@ export default function EventPostForm() {
                   name="parking_info"
                   type="text"
                   placeholder="e.g., Free parking available, Street parking, Valet service..."
-                  className="w-full px-6 py-4 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 transition-all duration-200"
+                  className="w-full px-6 py-4 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 transition-all duration-200 text-foreground placeholder:text-foreground/70 font-medium"
                 />
               </div>
 
@@ -566,7 +566,7 @@ export default function EventPostForm() {
                   name="additional_notes"
                   rows={4}
                   placeholder="Any other important information musicians should know..."
-                  className="w-full px-6 py-4 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 transition-all duration-200 resize-none"
+                  className="w-full px-6 py-4 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 transition-all duration-200 resize-none text-foreground placeholder:text-foreground/70 font-medium"
                 />
               </div>
             </div>
