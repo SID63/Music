@@ -1,4 +1,4 @@
-import { Outlet } from 'react-router-dom';
+import { Outlet, Link } from 'react-router-dom';
 import { Toaster } from 'sonner';
 // Using emoji as a fallback for now
 import MainNav from './MainNav';
@@ -22,6 +22,20 @@ export default function Layout() {
   return (
     <AppearanceProvider>
       <div className="min-h-screen bg-background font-sans antialiased relative app-flair overflow-x-hidden transform-none">
+        {/* Mobile branding header */}
+        <header
+          className="md:hidden fixed top-0 inset-x-0 z-[100] h-16 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border"
+          role="banner"
+          style={{ paddingTop: 'env(safe-area-inset-top)' }}
+        >
+          <div className="container h-full px-4 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-2xl">🎵</span>
+              <span className="text-lg font-semibold">Music Connect</span>
+            </div>
+            <Link to="/profile" className="text-sm font-medium hover:underline">Profile</Link>
+          </div>
+        </header>
         <header
           className="hidden md:block fixed top-4 inset-x-0 z-[100] w-full bg-transparent pointer-events-none"
           role="banner"
@@ -44,7 +58,7 @@ export default function Layout() {
           </div>
         </header>
 
-        <main className="container py-6 pb-36 md:pb-16 px-3 sm:px-0 md:pt-24">
+        <main className="container pt-16 py-6 pb-36 md:pb-16 px-3 sm:px-0 md:pt-24">
           <Outlet />
         </main>
 

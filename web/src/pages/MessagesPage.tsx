@@ -856,7 +856,18 @@ export default function MessagesPage() {
                     <>
                       {/* Band Chat Header */}
                       <div className="p-4 border-b border-gray-200 flex-shrink-0">
-                        <div className="flex items-center space-x-3">
+                        <div className="flex items-center gap-3">
+                          {/* Back button for mobile */}
+                          <button
+                            type="button"
+                            className="md:hidden inline-flex items-center justify-center w-9 h-9 rounded-full hover:bg-gray-100"
+                            onClick={() => setSelectedBandChat(null)}
+                            aria-label="Back to bands"
+                          >
+                            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M15 18l-6-6 6-6" />
+                            </svg>
+                          </button>
                           {(() => {
                             const bandChat = bandChats.find(bc => bc.band.id === selectedBandChat);
                             if (!bandChat) return null;
@@ -886,7 +897,7 @@ export default function MessagesPage() {
                               key={message.id}
                               className={`flex ${message.sender_id === profile?.user_id ? 'justify-end' : 'justify-start'}`}
                             >
-                              <div className={`max-w-xs lg:max-w-md px-3 py-2 rounded-lg ${
+                              <div className={`max-w-[80%] md:max-w-md px-3 py-2 rounded-2xl ${
                                 message.sender_id === profile?.user_id
                                   ? 'bg-purple-600 text-white'
                                   : 'bg-gray-100 text-gray-900'
@@ -913,7 +924,7 @@ export default function MessagesPage() {
                       </ScrollArea>
                       
                       {/* Band Message Input */}
-                      <div className="p-4 border-t border-gray-200 flex-shrink-0">
+                      <div className="p-4 border-t border-gray-200 flex-shrink-0 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
                         <div className="space-y-3">
                           {/* File URL Input */}
                           <div className="flex items-center space-x-2">
