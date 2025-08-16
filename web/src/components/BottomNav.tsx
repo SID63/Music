@@ -21,17 +21,23 @@ export default function BottomNav() {
     <nav
       role="navigation"
       aria-label="Primary"
-      className="md:hidden fixed bottom-0 inset-x-0 z-[99999] ui-glass-strong ui-vibrant-border backdrop-blur pointer-events-auto"
-      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      className="md:hidden fixed bottom-0 inset-x-0 z-[99999] h-16 bg-background/95 supports-[backdrop-filter]:bg-background/70 backdrop-blur border-t border-border pointer-events-auto"
+      style={{
+        paddingBottom: 'env(safe-area-inset-bottom)',
+        paddingLeft: 'env(safe-area-inset-left)',
+        paddingRight: 'env(safe-area-inset-right)',
+        WebkitTapHighlightColor: 'transparent',
+        touchAction: 'manipulation',
+      }}
     >
-      <ul className="grid grid-cols-5">
+      <ul className="grid grid-cols-5 h-full max-w-full">
         {navItems.map(({ to, label, Icon }) => {
           const active = isActive(to);
           return (
             <li key={to}>
               <Link
                 to={to}
-                className={`flex flex-col items-center justify-center py-3 min-h-12 gap-1 text-xs transition-colors ${
+                className={`flex h-full w-full min-w-0 flex-col items-center justify-center py-1 gap-0.5 text-[11px] transition-colors ${
                   active
                     ? 'text-primary'
                     : 'text-muted-foreground hover:text-foreground'
@@ -39,8 +45,8 @@ export default function BottomNav() {
                 aria-current={active ? 'page' : undefined}
                 aria-label={label}
               >
-                <Icon className={`h-5 w-5 ${active ? 'text-primary' : ''}`} />
-                <span className="text-[11px] leading-none">{label}</span>
+                <Icon className={`h-[22px] w-[22px] ${active ? 'text-primary' : ''}`} />
+                <span className="leading-none">{label}</span>
               </Link>
             </li>
           );
