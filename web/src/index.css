@@ -167,6 +167,7 @@ body.modal-open {
     -webkit-text-fill-color: hsl(var(--foreground)); /* iOS Safari */
     caret-color: hsl(var(--foreground));
     font-weight: 500; /* slightly heavier to avoid looking washed out on mobile */
+    background-color: var(--card); /* solid background to avoid overlay blending */
   }
   :where(input::placeholder, textarea::placeholder, select::placeholder) {
     color: hsl(var(--foreground) / 0.7);
@@ -307,6 +308,7 @@ html:not([data-flair]) .app-flair::before { opacity: 0; }
 /* Subtle surface noise (optional) */
 .ui-noise {
   position: relative;
+  z-index: 0; /* establish stacking context */
 }
 .ui-noise::after {
   content: "";
@@ -317,6 +319,7 @@ html:not([data-flair]) .app-flair::before { opacity: 0; }
   opacity: 0.5;
   pointer-events: none;
   mix-blend-mode: overlay;
+  z-index: -1; /* keep behind content */
 }
 
 /* Motion/Accessibility: reduce blur intensity */
