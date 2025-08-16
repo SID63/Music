@@ -184,6 +184,24 @@ body.modal-open {
     -webkit-text-fill-color: hsl(var(--foreground)) !important;
     transition: background-color 9999s ease-out 0s; /* keep background from flashing */
   }
+
+  /* Remove number input spinners (mobile-friendly) */
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type="number"] { -moz-appearance: textfield; }
+
+  /* Normalize control appearance */
+  :where(input, select, textarea) { appearance: none; -webkit-appearance: none; background-clip: padding-box; }
+
+  /* Consistent focus-visible ring for native controls */
+  :where(input, select, textarea):focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 30%, transparent);
+    border-color: var(--ring);
+  }
 }
 
 /* Utilities */
@@ -196,6 +214,8 @@ body.modal-open {
 /* Small-screen container padding tightening */
 @media (max-width: 640px) {
   .container { padding-left: 0.75rem; padding-right: 0.75rem; }
+  /* Prevent iOS zoom on focus by keeping controls >= 16px */
+  :where(input, select, textarea) { font-size: 16px; line-height: 1.5; }
 }
 
 /* Background flair for a more appealing look */
