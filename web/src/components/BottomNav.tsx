@@ -21,10 +21,10 @@ export default function BottomNav() {
     <nav
       role="navigation"
       aria-label="Primary"
-      className="md:hidden fixed bottom-4 z-[99999] inset-x-4 rounded-2xl ui-glass-strong ui-vibrant-border shadow-2xl ring-1 ring-border/60 backdrop-blur pointer-events-auto"
-      style={{ bottom: 'calc(env(safe-area-inset-bottom) + 1rem)' }}
+      className="md:hidden fixed bottom-0 inset-x-0 z-[99999] ui-glass-strong ui-vibrant-border backdrop-blur pointer-events-auto"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
-      <ul className="mx-auto max-w-md grid grid-cols-5">
+      <ul className="grid grid-cols-5">
         {navItems.map(({ to, label, Icon }) => {
           const active = isActive(to);
           return (
