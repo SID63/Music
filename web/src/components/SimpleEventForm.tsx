@@ -27,6 +27,7 @@ const SimpleEventForm: React.FC = () => {
       const description = String(form.get('description') || '');
       const location = String(form.get('location') || '');
       const startsAt = String(form.get('starts_at') || '');
+      let endsAt = String(form.get('ends_at') || '');
       const budgetMin = form.get('budget_min') ? Number(form.get('budget_min')) : null;
       const budgetMax = form.get('budget_max') ? Number(form.get('budget_max')) : null;
       
@@ -47,6 +48,23 @@ const SimpleEventForm: React.FC = () => {
         return;
       }
 
+      // Ensure endsAt exists and is after start
+      if (!endsAt) {
+        setError('End date and time is required');
+        return;
+      }
+      const endDate = new Date(endsAt);
+      if (endDate <= startDate) {
+        setError('End date must be after start date');
+        return;
+      }
+
+      // Get authenticated user's email
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError) {
+        console.warn('Could not get auth user:', authError.message);
+      }
+
       const eventData = {
         organizer_profile_id: profile.id,
         title: title,
@@ -55,10 +73,10 @@ const SimpleEventForm: React.FC = () => {
         event_type: 'gig',
         genres: ['general'],
         starts_at: startDate.toISOString(),
-        ends_at: null,
+        ends_at: endDate.toISOString(),
         budget_min: budgetMin,
         budget_max: budgetMax,
-        contact_email: profile.email || '',
+        contact_email: user?.email || '',
         contact_phone: '',
         requirements: '',
         equipment_provided: '',
@@ -149,13 +167,41 @@ const SimpleEventForm: React.FC = () => {
             type="datetime-local"
             required
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            onChange={(e) => {
+              const endsInput = document.getElementsByName('ends_at')[0] as HTMLInputElement | undefined;
+              if (endsInput && e.target.value) {
+                endsInput.min = e.target.value;
+                endsInput.setCustomValidity('');
+              }
+            }}
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            End Date & Time *
+          </label>
+          <input
+            name="ends_at"
+            type="datetime-local"
+            required
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            onChange={(e) => {
+              const endDate = new Date(e.target.value);
+              const startInput = document.getElementsByName('starts_at')[0] as HTMLInputElement | undefined;
+              if (startInput && startInput.value && endDate <= new Date(startInput.value)) {
+                e.target.setCustomValidity('End date must be after start date');
+              } else {
+                e.target.setCustomValidity('');
+              }
+            }}
           />
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Minimum Budget
+              Minimum Budget (₹)
             </label>
             <input
               name="budget_min"
@@ -167,7 +213,7 @@ const SimpleEventForm: React.FC = () => {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Maximum Budget
+              Maximum Budget (₹)
             </label>
             <input
               name="budget_max"

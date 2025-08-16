@@ -36,8 +36,14 @@ const BandLeadershipTest: React.FC = () => {
 
         console.log('Leader memberships:', leaderMemberships, 'Error:', leaderError);
 
+        // Normalize band join results (Supabase can return arrays for joined relations)
+        const normalizedMemberships = (leaderMemberships || []).map((m: any) => ({
+          ...m,
+          band: Array.isArray(m.band) ? m.band[0] : m.band,
+        }));
+
         // Test 2: Check if bands are active
-        const activeBands = leaderMemberships?.filter(m => m.band?.is_active) || [];
+        const activeBands = normalizedMemberships.filter((m: any) => m.band?.is_active);
         
         // Test 3: Get member counts
         const bandsWithCounts = await Promise.all(
@@ -56,9 +62,9 @@ const BandLeadershipTest: React.FC = () => {
 
         setResults({
           profile,
-          leaderMemberships,
+          leaderMemberships: normalizedMemberships,
           activeBands: bandsWithCounts,
-          leaderError
+          leaderError,
         });
         
       } catch (err) {

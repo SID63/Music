@@ -14,7 +14,7 @@ type Review = {
   booking: {
     event: {
       title: string;
-      date: string;
+      starts_at: string;
     };
   };
 };
@@ -51,14 +51,26 @@ export default function ReviewDisplay({
             created_at,
             reviewer_profile:profiles!reviews_reviewer_profile_id_fkey(
               display_name,
-              avatar_url
+              avatar_url,
+              role
+            ),
+            booking:bookings!reviews_booking_id_fkey(
+              event:events!bookings_event_id_fkey(
+                title,
+                starts_at
+              )
             )
           `)
           .eq('reviewee_profile_id', profileId)
           .order('created_at', { ascending: false });
 
         if (error) throw error;
-        setReviews(data || []);
+        const list = (data || []) as unknown as Review[];
+        setReviews(list);
+        // compute aggregates
+        const total = list.length;
+        setTotalReviews(total);
+        setAverageRating(total > 0 ? list.reduce((sum, r) => sum + r.rating, 0) / total : 0);
       } catch (error) {
         console.error('Error loading reviews:', error);
       } finally {
@@ -182,7 +194,7 @@ export default function ReviewDisplay({
                       <span className="font-medium">Event:</span> {review.booking.event.title}
                     </p>
                     <p className="text-gray-600">
-                      <span className="font-medium">Date:</span> {formatDate(review.booking.event.date)}
+                      <span className="font-medium">Date:</span> {formatDate(review.booking.event.starts_at)}
                     </p>
                   </div>
                 )}

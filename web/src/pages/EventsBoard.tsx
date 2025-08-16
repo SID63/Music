@@ -1,533 +1,510 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../context/AuthContext';
-import MessageButton from '../components/MessageButton';
-import EventApplicationsManager from '../components/EventApplicationsManager';
+import { Plus, Search, Filter, X } from 'lucide-react';
+import EventCard from '../components/EventCard';
+import EventCardSkeleton from '../components/skeletons/EventCardSkeleton';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../components/ui/select';
 import MyApplicationsManager from '../components/MyApplicationsManager';
-import EventApplicationForm from '../components/EventApplicationForm';
+import EventApplicationsManager from '../components/EventApplicationsManager';
+import { eventService } from '../services/eventService';
+import type { Event as ServiceEvent } from '../services/eventService';
 
-type Event = {
-  id: string;
-  title: string;
-  description: string | null;
-  location: string | null;
-  event_type: string | null;
-  genres: string[] | null;
-  starts_at: string;
-  ends_at: string | null;
-  budget_min: number | null;
-  budget_max: number | null;
-  contact_email: string | null;
-  contact_phone: string | null;
-  requirements: string | null;
-  equipment_provided: string | null;
-  parking_info: string | null;
-  additional_notes: string | null;
-  created_at: string;
-  organizer_profile_id: string;
-  band_id?: string;
-  posted_by_type?: 'individual' | 'band';
-  organizer?: {
-    id: string;
-    display_name: string | null;
-  };
-  band?: {
-    id: string;
-    name: string;
-    description?: string;
-  };
-};
+type Event = ServiceEvent;
 
 export default function EventsBoard() {
   const { profile, user } = useAuth();
   const [events, setEvents] = useState<Event[]>([]);
   const [myEvents, setMyEvents] = useState<Event[]>([]);
-  const [selectedEventType, setSelectedEventType] = useState<string>('all');
-  const [selectedGenre, setSelectedGenre] = useState<string>('all');
-  const [showApplicationForm, setShowApplicationForm] = useState(false);
-  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
+  // Advanced Filters & Sort UI
+  const [isAdvancedFiltersOpen, setIsAdvancedFiltersOpen] = useState(false);
+  const [isSortOpen, setIsSortOpen] = useState(false);
+  const [sortBy, setSortBy] = useState<'date_asc' | 'date_desc' | 'budget_desc' | 'budget_asc' | 'title_asc'>('date_asc');
+  const [filters, setFilters] = useState({
+    dateFrom: '',
+    dateTo: '',
+    budgetMin: '',
+    budgetMax: '',
+    locationQuery: '',
+    withBudget: false,
+    upcomingOnly: false,
+  });
 
   useEffect(() => {
     const load = async () => {
-      // Load all events with enhanced fields and organizer info
-      const { data } = await supabase
-        .from('events')
-        .select(`
-          id, title, description, location, event_type, genres, 
-          starts_at, ends_at, budget_min, budget_max, 
-          contact_email, contact_phone, requirements, 
-          equipment_provided, parking_info, additional_notes, created_at,
-          organizer_profile_id, band_id, posted_by_type
-        `)
-        .order('starts_at', { ascending: true });
-      
-      const eventsData = (data as unknown as Event[]) || [];
-      setEvents(eventsData);
+      setIsLoading(true);
+      try {
+        // Load all events with details
+        const { data: allEvents } = await eventService.getEvents();
+        setEvents(allEvents || []);
 
-      // Load organizer profiles for events
-      if (eventsData.length > 0) {
-        const organizerIds = [...new Set(eventsData.map(e => e.organizer_profile_id))];
-        const { data: organizerProfiles } = await supabase
-          .from('profiles')
-          .select('id, display_name')
-          .in('id', organizerIds);
-
-        // Load band data for events posted by bands
-        const bandIds = [...new Set(eventsData.filter(e => e.band_id).map(e => e.band_id!))];
-        let bandsData: any[] = [];
-        
-        if (bandIds.length > 0) {
-          const { data: bands } = await supabase
-            .from('bands')
-            .select('id, name, description')
-            .in('id', bandIds);
-          bandsData = bands || [];
+        // Load user's events (includes band-leader events)
+        const ownerId = profile?.id || user?.id;
+        if (ownerId) {
+          const { data: mine } = await eventService.getUserEvents(ownerId);
+          setMyEvents(mine || []);
+        } else {
+          setMyEvents([]);
         }
-
-        const eventsWithOrganizers = eventsData.map(event => ({
-          ...event,
-          organizer: organizerProfiles?.find(p => p.id === event.organizer_profile_id),
-          band: bandsData.find(b => b.id === event.band_id)
-        }));
-        setEvents(eventsWithOrganizers);
+      } catch (error) {
+        console.error('Error loading events:', error);
+      } finally {
+        setIsLoading(false);
       }
-
-             // Load user's events if they're an organizer or musician
-       if (user && (profile?.role === 'organizer' || profile?.role === 'musician')) {
-        const { data: myEventsData } = await supabase
-          .from('events')
-          .select(`
-            id, title, description, location, event_type, genres, 
-            starts_at, ends_at, budget_min, budget_max, 
-            contact_email, contact_phone, requirements, 
-            equipment_provided, parking_info, additional_notes, created_at
-          `)
-          .eq('organizer_profile_id', profile.id)
-        .order('starts_at', { ascending: true });
-        setMyEvents((myEventsData as unknown as Event[]) || []);
-      }
-
-      
     };
+
     load();
   }, [user, profile]);
 
-  // Get all unique event types and genres for filtering
-  const allEventTypes = Array.from(new Set(events.map(e => e.event_type).filter(Boolean)));
-  const allGenres = Array.from(new Set(events.flatMap(e => e.genres || [])));
+  // Precompute unique sets (none needed beyond current schema)
 
-  // Filter events based on selected filters
+  // Filter events based on search, basic and advanced filters
   const filteredEvents = events.filter(event => {
-    const matchesEventType = selectedEventType === 'all' || event.event_type === selectedEventType;
-    const matchesGenre = selectedGenre === 'all' || (event.genres && event.genres.includes(selectedGenre));
-    return matchesEventType && matchesGenre;
+    if (!event) return false;
+    
+    const searchLower = searchTerm.toLowerCase();
+    const matchesSearch = searchTerm === '' || 
+      (event.title?.toLowerCase().includes(searchLower) ||
+      event.description?.toLowerCase().includes(searchLower) ||
+      event.location?.toLowerCase().includes(searchLower));
+      
+    // Advanced: date range
+    const fromOk = !filters.dateFrom || (event.starts_at && new Date(event.starts_at) >= new Date(filters.dateFrom));
+    const toOk = !filters.dateTo || (event.starts_at && new Date(event.starts_at) <= new Date(filters.dateTo));
+    // Advanced: budget
+    const minBudget = filters.budgetMin ? parseFloat(filters.budgetMin) : undefined;
+    const maxBudget = filters.budgetMax ? parseFloat(filters.budgetMax) : undefined;
+    const budget = event.budget_min ?? event.budget_max ?? 0;
+    const budgetOk = (minBudget === undefined || budget >= minBudget) && (maxBudget === undefined || budget <= maxBudget);
+    // Advanced: location contains
+    const locationOk = !filters.locationQuery || (event.location || '').toLowerCase().includes(filters.locationQuery.toLowerCase());
+    // Advanced: with budget
+    const withBudgetOk = !filters.withBudget || !!(event.budget_min || event.budget_max);
+    // Advanced: upcoming only
+    const upcomingOk = !filters.upcomingOnly || (event.starts_at && new Date(event.starts_at) >= new Date());
+    
+    return matchesSearch && fromOk && toOk && budgetOk && locationOk && withBudgetOk && upcomingOk;
+  });
+  
+  // Apply sorting
+  const sortedEvents = [...filteredEvents].sort((a, b) => {
+    const getBudget = (e: Event) => (e.budget_min ?? 0) || (e.budget_max ?? 0);
+    switch (sortBy) {
+      case 'date_desc':
+        return new Date(b.starts_at || 0).getTime() - new Date(a.starts_at || 0).getTime();
+      case 'budget_desc':
+        return getBudget(b) - getBudget(a);
+      case 'budget_asc':
+        return getBudget(a) - getBudget(b);
+      case 'title_asc':
+        return (a.title || '').localeCompare(b.title || '');
+      case 'date_asc':
+      default:
+        return new Date(a.starts_at || 0).getTime() - new Date(b.starts_at || 0).getTime();
+    }
   });
 
-  const formatEventType = (type: string | null) => {
-    if (!type) return 'Gig';
-    const typeMap: { [key: string]: string } = {
-      'gig': 'Gig/Performance',
-      'wedding': 'Wedding',
-      'corporate': 'Corporate Event',
-      'festival': 'Festival',
-      'party': 'Private Party',
-      'ceremony': 'Ceremony',
-      'other': 'Other'
-    };
-    return typeMap[type] || type;
-  };
-
-  const formatBudget = (min: number | null, max: number | null) => {
-    if (!min && !max) return 'Budget not specified';
-    if (min && max) return `$${min} - $${max}`;
-    if (min) return `From $${min}`;
-    if (max) return `Up to $${max}`;
-    return 'Budget not specified';
-  };
-
-  const formatDateTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return {
-      date: date.toLocaleDateString('en-US', { 
-        weekday: 'long', 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric' 
-      }),
-      time: date.toLocaleTimeString('en-US', { 
-        hour: 'numeric', 
-        minute: '2-digit',
-        hour12: true 
-      })
-    };
-  };
-
-
-
-  const EventCard = ({ event, isMyEvent = false }: { event: Event; isMyEvent?: boolean }) => {
-    const [hasConfirmedBookings, setHasConfirmedBookings] = useState(false);
-    const [checkingBookings, setCheckingBookings] = useState(false);
-
-    // Check for confirmed bookings when component mounts
-    useEffect(() => {
-      if (isMyEvent) {
-        checkConfirmedBookings();
-      }
-    }, [event.id, isMyEvent]);
-
-    const checkConfirmedBookings = async () => {
-      setCheckingBookings(true);
-      try {
-        const { data: confirmedBookings, error } = await supabase
-          .from('bookings')
-          .select('id, status')
-          .eq('event_id', event.id)
-          .in('status', ['confirmed', 'completed']);
-
-        if (!error && confirmedBookings) {
-          setHasConfirmedBookings(confirmedBookings.length > 0);
-        }
-      } catch (error) {
-        console.error('Error checking confirmed bookings:', error);
-      } finally {
-        setCheckingBookings(false);
-      }
-    };
-
-    return (
-    <div className={`bg-white rounded-xl shadow-sm border p-6 hover:shadow-md transition-shadow ${
-      isMyEvent ? 'border-blue-200' : 'border-gray-200'
-    }`}>
-      <div className="space-y-4">
-        {/* Header */}
-        <div className="flex items-start justify-between">
-          <div className="flex-1">
-            <h3 className="font-semibold text-xl text-gray-900 mb-2">{event.title}</h3>
-            <div className="flex items-center gap-2 mb-2">
-              <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                event.event_type === 'wedding' ? 'bg-pink-100 text-pink-800' :
-                event.event_type === 'corporate' ? 'bg-blue-100 text-blue-800' :
-                event.event_type === 'festival' ? 'bg-purple-100 text-purple-800' :
-                event.event_type === 'party' ? 'bg-green-100 text-green-800' :
-                'bg-gray-100 text-gray-800'
-              }`}>
-                {formatEventType(event.event_type)}
-              </span>
-              {event.posted_by_type === 'band' && event.band && (
-                <span className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-medium">
-                  Posted by {event.band.name}
-                </span>
-              )}
-              {isMyEvent && (
-                <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
-                  My Event
-                </span>
-              )}
-            </div>
-          </div>
-          
-          <div className="text-right">
-            <div className="text-sm bg-green-50 text-green-700 px-3 py-2 rounded-lg font-medium">
-              {formatBudget(event.budget_min, event.budget_max)}
-            </div>
-          </div>
-        </div>
-
-        {/* Description */}
-        {event.description && (
-          <p className="text-gray-700 leading-relaxed line-clamp-3">{event.description}</p>
-        )}
-
-        {/* Genres */}
-        {event.genres && event.genres.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {event.genres.map((genre, index) => (
-              <span
-                key={index}
-                className="px-2 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-medium"
-              >
-                {genre}
-              </span>
-            ))}
-          </div>
-        )}
-
-        {/* Location and Timing */}
-        <div className="space-y-2">
-          {event.location && (
-            <div className="flex items-center gap-2 text-sm text-gray-600">
-              <span>📍</span>
-              <span>{event.location}</span>
-            </div>
-          )}
-          
-          <div className="flex items-center gap-2 text-sm text-gray-600">
-            <span>📅</span>
-            <span>{formatDateTime(event.starts_at).date}</span>
-            <span>at</span>
-            <span className="font-medium">{formatDateTime(event.starts_at).time}</span>
-          </div>
-          
-          {event.ends_at && (
-            <div className="flex items-center gap-2 text-sm text-gray-600">
-              <span>⏰</span>
-              <span>Ends: {formatDateTime(event.ends_at).time}</span>
-            </div>
-          )}
-        </div>
-
-        {/* Additional Details */}
-        {(event.requirements || event.equipment_provided || event.parking_info) && (
-          <div className="space-y-2 pt-2 border-t border-gray-100">
-            {event.requirements && (
-              <div className="text-sm">
-                <span className="font-medium text-gray-700">Requirements:</span>
-                <span className="text-gray-600 ml-2">{event.requirements}</span>
-              </div>
-            )}
-            
-            {event.equipment_provided && (
-              <div className="text-sm">
-                <span className="font-medium text-gray-700">Equipment:</span>
-                <span className="text-gray-600 ml-2">{event.equipment_provided}</span>
-              </div>
-            )}
-            
-            {event.parking_info && (
-              <div className="text-sm">
-                <span className="font-medium text-gray-700">Parking:</span>
-                <span className="text-gray-600 ml-2">{event.parking_info}</span>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Contact Information */}
-        {(event.contact_email || event.contact_phone) && (
-          <div className="pt-2 border-t border-gray-100">
-            <div className="text-sm text-gray-600">
-              <span className="font-medium text-gray-700">Contact:</span>
-              {event.contact_email && (
-                <span className="ml-2">{event.contact_email}</span>
-              )}
-              {event.contact_phone && (
-                <span className="ml-2">{event.contact_phone}</span>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Actions */}
-        <div className="flex space-x-3 pt-4 border-t border-gray-100">
-          {isMyEvent ? (
-            hasConfirmedBookings ? (
-              <div className="flex-1 px-4 py-2 bg-gray-400 text-white rounded-lg text-center font-medium cursor-not-allowed">
-                Cannot Edit - Artists Confirmed
-              </div>
-            ) : (
-              <Link
-                to={`/events/edit/${event.id}`}
-                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-center font-medium"
-              >
-                Edit Event
-              </Link>
-            )
-          ) : (
-                         <div className="flex-1 space-y-2">
-               {/* Contact Organizer Button */}
-               {event.organizer && (
-                 <MessageButton
-                   recipientProfileId={event.organizer.id}
-                   recipientName={event.organizer.display_name || 'Organizer'}
-                   className="w-full"
-                   eventContext={{
-                     eventId: event.id,
-                     eventTitle: event.title,
-                     eventDate: formatDateTime(event.starts_at).date,
-                     eventLocation: event.location || undefined
-                   }}
-                 />
-               )}
-               
-               {/* Apply for Event Button */}
-               {profile?.role === 'musician' && !isMyEvent && (
-                 <button
-                   onClick={() => {
-                     setSelectedEvent(event);
-                     setShowApplicationForm(true);
-                   }}
-                   className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
-                 >
-                   Apply for Event
-                 </button>
-               )}
-               
-
-             </div>
-          )}
-        </div>
-      </div>
-    </div>
-    );
-  };
-
   return (
-    <div className="container space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+    <div className="container py-6 px-3 sm:px-0 space-y-6">
+      {/* Header with Title and Actions */}
+      <div className="ui-glass ui-vibrant-border rounded-xl p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 ui-noise bg-card/80 border border-border shadow-md">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Events</h1>
-          <p className="text-gray-600">Browse upcoming gigs and opportunities</p>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Events</h1>
+          <p className="text-muted-foreground mt-1">Discover and manage upcoming gigs and opportunities</p>
         </div>
-                 {(profile?.role === 'organizer' || profile?.role === 'musician') && (
-          <div className="flex gap-2">
-            <Link 
-              to="/events/post" 
-              className="inline-flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              Post Event
-            </Link>
-            <Link 
-              to="/events/post" 
-              className="inline-flex items-center justify-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-            >
-              Post as Band
-            </Link>
-          </div>
+        {(profile?.role === 'organizer' || profile?.role === 'musician') && (
+          <Link to="/events/new">
+            <Button className="w-full sm:w-auto min-h-11">
+              <Plus className="w-4 h-4 mr-2" />
+              Create Event
+            </Button>
+          </Link>
         )}
       </div>
-      
-      {/* Filters */}
-      {(allEventTypes.length > 0 || allGenres.length > 0) && (
-        <div className="bg-white rounded-xl shadow-sm border p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Filter Events</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Event Type</label>
-              <select
-                value={selectedEventType}
-                onChange={(e) => setSelectedEventType(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="all">All Event Types</option>
-                {allEventTypes.map(type => (
-                  <option key={type} value={type}>{formatEventType(type)}</option>
-                ))}
-              </select>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Genre</label>
-              <select
-                value={selectedGenre}
-                onChange={(e) => setSelectedGenre(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="all">All Genres</option>
-                {allGenres.map(genre => (
-                  <option key={genre} value={genre}>{genre}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-            </div>
-          )}
 
-             {/* My Events Section */}
-       {user && (profile?.role === 'organizer' || profile?.role === 'musician') && myEvents.length > 0 && (
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold tracking-tight mb-6">My Events</h2>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {myEvents.map((event) => (
-              <EventCard key={event.id} event={event} isMyEvent={true} />
-            ))}
-        </div>
-                    </div>
-                  )}
-
-      {/* Event Applications Management Section */}
-      {user && (profile?.role === 'organizer' || profile?.role === 'musician') && myEvents.length > 0 && (
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold tracking-tight mb-6">Event Applications</h2>
-          <EventApplicationsManager events={myEvents} userRole={profile?.role} />
-        </div>
-      )}
-
-      {/* My Applications Section for Musicians */}
-      {user && profile?.role === 'musician' && (
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold tracking-tight mb-6">My Applications</h2>
-          <MyApplicationsManager />
-        </div>
-      )}
-      
-      {/* Debug info for organizers and musicians with events */}
-      {user && (profile?.role === 'organizer' || profile?.role === 'musician') && myEvents.length > 0 && (
-        <div className="mb-8 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-          <h3 className="text-lg font-semibold text-yellow-800 mb-2">Debug Info for Event Posters</h3>
-          <div className="text-sm text-yellow-700 space-y-1">
-            <div>User ID: {user.id}</div>
-            <div>Profile Role: {profile.role}</div>
-            <div>My Events Count: {myEvents.length}</div>
-            <div>Profile ID: {profile.id}</div>
-            <div>Can View Applications: ✅ Yes</div>
-                </div>
-              </div>
-      )}
-
-      {/* All Events Section */}
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold tracking-tight mb-6">
-          All Events {filteredEvents.length > 0 && `(${filteredEvents.length})`}
-        </h2>
-      </div>
-      
-      {filteredEvents.length === 0 ? (
-        <div className="bg-white rounded-xl shadow-sm border p-8 text-center text-gray-600">
-          <div className="text-6xl mb-4">🎵</div>
-          <div className="text-xl font-medium mb-2">No events found</div>
-          <div className="text-gray-500 mb-4">
-            {events.length === 0 ? 'No events have been posted yet.' : 'Try adjusting your filters.'}
-          </div>
-                     {(profile?.role === 'organizer' || profile?.role === 'musician') && (
-             <Link to="/events/post" className="text-blue-600 hover:underline font-medium">
-               Be the first to post an event!
-             </Link>
-           )}
-            </div>
-      ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {filteredEvents.map((event) => (
-            <EventCard key={event.id} event={event} />
-          ))}
-        </div>
-      )}
-
-      {/* Application Form Modal */}
-      {showApplicationForm && selectedEvent && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <EventApplicationForm
-              event={selectedEvent}
-              onSuccess={() => {
-                setShowApplicationForm(false);
-                setSelectedEvent(null);
-                // Optionally refresh the page or show success message
-                window.location.reload();
-              }}
-              onCancel={() => {
-                setShowApplicationForm(false);
-                setSelectedEvent(null);
-              }}
+      {/* Search and Filters */}
+      <div className="mb-6 ui-glass ui-vibrant-border rounded-xl p-4 sm:p-5 ui-noise bg-card/70 border border-border shadow-sm">
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder="Search events..."
+              className="w-full pl-10 placeholder:text-muted-foreground/80"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              inputMode="search"
+              autoComplete="on"
             />
           </div>
+          
+          <div className="sm:hidden grid grid-cols-2 gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="w-full min-h-11"
+              onClick={() => setIsSortOpen(true)}
+            >
+              Sort
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="w-full min-h-11"
+              onClick={() => setIsMobileFiltersOpen(true)}
+            >
+              <Filter className="mr-2 h-4 w-4" />
+              Filters
+            </Button>
+          </div>
+          
+          <div className="hidden sm:flex gap-2 items-center">
+            <Button variant="outline" size="sm" onClick={() => setIsSortOpen(true)}>
+              Sort
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setIsAdvancedFiltersOpen(true)}>
+              More filters
+            </Button>
+            
+            {(searchTerm) && (
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setSearchTerm('');
+                }}
+                className="whitespace-nowrap"
+              >
+                <X className="mr-2 h-4 w-4" />
+                Clear filters
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Mobile filters */}
+        {isMobileFiltersOpen && (
+          <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 sm:hidden">
+            <div className="ui-glass ui-vibrant-border rounded-lg w-full max-w-md max-h-[80vh] flex flex-col ui-noise bg-card/90 border border-border shadow-xl">
+              <div className="p-4 border-b border-border flex items-center justify-between">
+                <h3 className="font-medium">Filters</h3>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={() => setIsMobileFiltersOpen(false)}
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
+              
+              <div className="p-4 space-y-4 overflow-y-auto">
+                <div className="grid grid-cols-1 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-muted-foreground mb-1">Date from</label>
+                      <Input type="date" value={filters.dateFrom} onChange={(e) => setFilters({ ...filters, dateFrom: e.target.value })} />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-muted-foreground mb-1">Date to</label>
+                      <Input type="date" value={filters.dateTo} onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })} />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-muted-foreground mb-1">Budget min (₹)</label>
+                      <Input type="number" inputMode="numeric" pattern="[0-9]*" placeholder="e.g. 100" value={filters.budgetMin} onChange={(e) => setFilters({ ...filters, budgetMin: e.target.value })} />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-muted-foreground mb-1">Budget max (₹)</label>
+                      <Input type="number" inputMode="numeric" pattern="[0-9]*" placeholder="e.g. 1000" value={filters.budgetMax} onChange={(e) => setFilters({ ...filters, budgetMax: e.target.value })} />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="block text-sm font-medium text-muted-foreground mb-1">Location contains</label>
+                      <Input placeholder="City, venue, etc." value={filters.locationQuery} onChange={(e) => setFilters({ ...filters, locationQuery: e.target.value })} />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <label className="inline-flex items-center gap-2 text-sm">
+                      <input className="h-5 w-5 rounded border-gray-300 text-primary focus:ring-primary" type="checkbox" checked={filters.withBudget} onChange={(e) => setFilters({ ...filters, withBudget: e.target.checked })} />
+                      Has budget
+                    </label>
+                    <label className="inline-flex items-center gap-2 text-sm">
+                      <input className="h-5 w-5 rounded border-gray-300 text-primary focus:ring-primary" type="checkbox" checked={filters.upcomingOnly} onChange={(e) => setFilters({ ...filters, upcomingOnly: e.target.checked })} />
+                      Upcoming only
+                    </label>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="p-4 border-t border-border flex justify-end gap-2">
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setSearchTerm('');
+                  }}
+                >
+                  Reset
+                </Button>
+                <Button onClick={() => setIsMobileFiltersOpen(false)}>
+                  Apply Filters
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Tabs */}
+      <Tabs defaultValue="all" className="w-full">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+          <h2 className="text-2xl font-bold tracking-tight">
+            {isLoading ? 'Loading events...' : `Events ${filteredEvents.length > 0 ? `(${filteredEvents.length})` : ''}`}
+          </h2>
+          
+          <TabsList className="grid w-full grid-cols-3 sm:w-auto sm:flex gap-1 overflow-x-auto no-scrollbar -mx-1 px-1">
+            <TabsTrigger value="all">All Events</TabsTrigger>
+            <TabsTrigger value="my-events">My Events</TabsTrigger>
+            <TabsTrigger value="applications">Applications</TabsTrigger>
+          </TabsList>
+        </div>
+
+        {/* All Events Tab */}
+        <TabsContent value="all">
+          {isLoading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
+              {[...Array(6)].map((_, i) => (
+                <EventCardSkeleton key={i} />
+              ))}
+            </div>
+          ) : filteredEvents.length === 0 ? (
+            <div className="text-center py-10 sm:py-12 ui-glass ui-vibrant-border rounded-xl p-6 sm:p-8 ui-noise bg-card/70 border border-border shadow-sm">
+              <div className="text-6xl mb-4">🎵</div>
+              <h3 className="text-lg font-medium text-foreground mb-1">
+                No events found
+              </h3>
+              <p className="text-muted-foreground mb-6">
+                {searchTerm 
+                  ? 'Try adjusting your search or filters' 
+                  : 'Check back later for new events'}
+              </p>
+              {(searchTerm) && (
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setSearchTerm('');
+                  }}
+                >
+                  Clear all filters
+                </Button>
+              )}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
+              {sortedEvents.map((event) => (
+                <EventCard key={event.id} event={event} />
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        {/* My Events Tab */}
+        <TabsContent value="my-events">
+          {isLoading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
+              {[...Array(3)].map((_, i) => (
+                <EventCardSkeleton key={i} />
+              ))}
+            </div>
+          ) : myEvents.length === 0 ? (
+            <div className="text-center py-10 sm:py-12 ui-glass ui-vibrant-border rounded-xl p-6 sm:p-8 ui-noise">
+              <div className="text-6xl mb-4">📅</div>
+              <h3 className="text-lg font-medium text-foreground mb-1">
+                No events yet
+              </h3>
+              <p className="text-muted-foreground mb-6">
+                {profile?.role === 'organizer' || profile?.role === 'musician'
+                  ? 'Create your first event to get started!'
+                  : 'You need to be logged in to view your events'}
+              </p>
+              {(profile?.role === 'organizer' || profile?.role === 'musician') && (
+                <Link to="/events/new">
+                  <Button>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Create Event
+                  </Button>
+                </Link>
+              )}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
+              {myEvents.map((event) => (
+                <EventCard key={event.id} event={event} />
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        {/* Applications Tab */}
+        <TabsContent value="applications">
+          {!profile ? (
+            <div className="text-center py-10 sm:py-12 ui-glass ui-vibrant-border rounded-xl p-6 sm:p-8 ui-noise">
+              <div className="text-6xl mb-4">🔐</div>
+              <h3 className="text-lg font-medium text-foreground mb-1">Sign in to view applications</h3>
+              <p className="text-muted-foreground">You need to be logged in to manage or view applications.</p>
+            </div>
+          ) : (
+            <Tabs
+              // Default: musicians see My Applications, organizers see For My Events
+              defaultValue={profile.role === 'organizer' ? 'for-events' : 'mine'}
+              className="w-full"
+            >
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+                <h3 className="text-xl font-semibold">Applications</h3>
+                <TabsList className="grid grid-cols-2 w-full sm:w-auto">
+                  <TabsTrigger value="mine" disabled={profile.role !== 'musician'}>
+                    My Applications
+                  </TabsTrigger>
+                  <TabsTrigger value="for-events">
+                    For My Events
+                  </TabsTrigger>
+                </TabsList>
+              </div>
+
+              <TabsContent value="mine">
+                {profile.role === 'musician' ? (
+                  <MyApplicationsManager />
+                ) : (
+                  <div className="text-center py-10 sm:py-12 ui-glass ui-vibrant-border rounded-xl p-6 sm:p-8 ui-noise">
+                    <div className="text-6xl mb-4">🎵</div>
+                    <h4 className="text-base font-medium text-foreground mb-1">Musician access required</h4>
+                    <p className="text-muted-foreground">Only musicians have personal applications.</p>
+                  </div>
+                )}
+              </TabsContent>
+
+              <TabsContent value="for-events">
+                {(profile.role === 'organizer' || profile.role === 'musician') ? (
+                  <EventApplicationsManager events={myEvents as any} userRole={profile.role} />
+                ) : (
+                  <div className="text-center py-10 sm:py-12 ui-glass ui-vibrant-border rounded-xl p-6 sm:p-8 ui-noise">
+                    <div className="text-6xl mb-4">📅</div>
+                    <h4 className="text-base font-medium text-foreground mb-1">No event access</h4>
+                    <p className="text-muted-foreground">You don't have events to manage.</p>
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
+          )}
+        </TabsContent>
+      </Tabs>
+
+      {/* Sort Modal */}
+      {isSortOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+          <div className="ui-glass ui-vibrant-border rounded-lg w-full max-w-md max-h-[80vh] flex flex-col ui-noise bg-card/90 border border-border shadow-xl">
+            <div className="p-4 border-b border-border flex items-center justify-between">
+              <h3 className="font-medium">Sort</h3>
+              <Button variant="ghost" size="icon" onClick={() => setIsSortOpen(false)}>
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
+            <div className="p-4 space-y-4 overflow-y-auto">
+              <div>
+                <label className="block text-sm font-medium text-muted-foreground mb-2">Sort by</label>
+                <Select value={sortBy} onValueChange={(v: any) => setSortBy(v)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="date_asc">Date (Soonest first)</SelectItem>
+                    <SelectItem value="date_desc">Date (Latest first)</SelectItem>
+                    <SelectItem value="budget_desc">Budget (High to Low)</SelectItem>
+                    <SelectItem value="budget_asc">Budget (Low to High)</SelectItem>
+                    <SelectItem value="title_asc">Title (A-Z)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="p-4 border-t border-border flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setSortBy('date_asc')}>Reset</Button>
+              <Button onClick={() => setIsSortOpen(false)}>Apply</Button>
+            </div>
+          </div>
         </div>
       )}
-      
+
+      {/* Advanced Filters Modal */}
+      {isAdvancedFiltersOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+          <div className="ui-glass ui-vibrant-border rounded-lg w-full max-w-2xl max-h-[85vh] flex flex-col ui-noise bg-card/90 border border-border shadow-xl">
+            <div className="p-4 border-b border-border flex items-center justify-between">
+              <h3 className="font-medium">Advanced Filters</h3>
+              <Button variant="ghost" size="icon" onClick={() => setIsAdvancedFiltersOpen(false)}>
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
+            <div className="p-4 space-y-6 overflow-y-auto">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-muted-foreground mb-1">Date from</label>
+                  <Input type="date" value={filters.dateFrom} onChange={(e) => setFilters({ ...filters, dateFrom: e.target.value })} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-muted-foreground mb-1">Date to</label>
+                  <Input type="date" value={filters.dateTo} onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-muted-foreground mb-1">Budget min (₹)</label>
+                  <Input type="number" inputMode="numeric" pattern="[0-9]*" placeholder="e.g. 100" value={filters.budgetMin} onChange={(e) => setFilters({ ...filters, budgetMin: e.target.value })} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-muted-foreground mb-1">Budget max (₹)</label>
+                  <Input type="number" inputMode="numeric" pattern="[0-9]*" placeholder="e.g. 1000" value={filters.budgetMax} onChange={(e) => setFilters({ ...filters, budgetMax: e.target.value })} />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="block text-sm font-medium text-muted-foreground mb-1">Location contains</label>
+                  <Input placeholder="City, venue, etc." value={filters.locationQuery} onChange={(e) => setFilters({ ...filters, locationQuery: e.target.value })} />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <label className="inline-flex items-center gap-2 text-sm">
+                  <input className="h-5 w-5 rounded border-gray-300 text-primary focus:ring-primary" type="checkbox" checked={filters.withBudget} onChange={(e) => setFilters({ ...filters, withBudget: e.target.checked })} />
+                  Has budget
+                </label>
+                <label className="inline-flex items-center gap-2 text-sm">
+                  <input className="h-5 w-5 rounded border-gray-300 text-primary focus:ring-primary" type="checkbox" checked={filters.upcomingOnly} onChange={(e) => setFilters({ ...filters, upcomingOnly: e.target.checked })} />
+                  Upcoming only
+                </label>
+              </div>
+            </div>
+            <div className="p-4 border-t border-border flex justify-between gap-2">
+              <Button
+                variant="ghost"
+                onClick={() => setFilters({
+                  dateFrom: '', dateTo: '', budgetMin: '', budgetMax: '', locationQuery: '', withBudget: false, upcomingOnly: false
+                })}
+              >
+                Reset
+              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setIsAdvancedFiltersOpen(false)}>Close</Button>
+                <Button onClick={() => setIsAdvancedFiltersOpen(false)}>Apply</Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
-
-
-
-

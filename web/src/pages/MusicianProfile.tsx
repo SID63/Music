@@ -90,13 +90,16 @@ export default function MusicianProfile() {
         if (bandError) {
           console.error('Error loading bands:', bandError);
         } else if (bandMembers) {
-          const bandsData: Band[] = bandMembers.map(member => ({
-            id: member.bands.id,
-            name: member.bands.name,
-            description: member.bands.description,
-            role: member.role,
-            joined_at: member.joined_at
-          }));
+          const bandsData: Band[] = bandMembers.map((member: any) => {
+            const band = Array.isArray(member.bands) ? member.bands[0] : member.bands;
+            return {
+              id: band?.id,
+              name: band?.name,
+              description: band?.description ?? null,
+              role: member.role,
+              joined_at: member.joined_at,
+            } as Band;
+          }).filter((b: Band) => Boolean(b.id && b.name));
           setBands(bandsData);
         }
       } catch (error) {

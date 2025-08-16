@@ -49,64 +49,115 @@ export const bandService = {
     return { data: processedData, error };
   },
 
-     // Get a specific band with members
-   async getBand(bandId: string): Promise<{ data: Band | null; error: any }> {
-     // console.log('Getting band with ID:', bandId);
-     
-     // First get the band details
-     const { data: bandData, error: bandError } = await supabase
-       .from('bands')
-       .select('*')
-       .eq('id', bandId)
-       .eq('is_active', true)
-       .single();
-
-    if (bandError || !bandData) {
-      return { data: null, error: bandError };
+  // Get a specific band with members
+  async getBand(bandId: string): Promise<{ data: Band | null; error: any }> {
+    console.log('[bandService] Getting band with ID:', bandId);
+    
+    if (!bandId) {
+      console.error('[bandService] No band ID provided');
+      return { data: null, error: { message: 'No band ID provided' } };
     }
 
-         // Then get the members separately (without nested query to avoid RLS issues)
-     const { data: membersData, error: membersError } = await supabase
-       .from('band_members')
-       .select('*')
-       .eq('band_id', bandId);
-     
-     // console.log('Band members data:', membersData);
-     // console.log('Band members error:', membersError);
+    try {
+      // First get the band details
+      const { data: bandData, error: bandError } = await supabase
+        .from('bands')
+        .select('*')
+        .eq('id', bandId)
+        .eq('is_active', true)
+        .single();
 
-                   // If we have members, fetch their profile data separately
-     let membersWithProfiles = [];
-     if (membersData && membersData.length > 0) {
-       // Fetch profiles one by one to avoid potential RLS issues
-       const profilesPromises = membersData.map(async (member) => {
-         const { data: profileData, error: profileError } = await supabase
-           .from('profiles')
-           .select('id, user_id, display_name, avatar_url')
-           .eq('user_id', member.user_id)
-           .single();
-         
-         // console.log('Profile for user', member.user_id, ':', profileData, 'Error:', profileError);
-         
-         return {
-           ...member,
-           user: profileData || { id: member.user_id, display_name: null, avatar_url: null }
-         };
-       });
-       
-       membersWithProfiles = await Promise.all(profilesPromises);
-     }
+      if (bandError || !bandData) {
+        console.error('[bandService] Error fetching band:', bandError);
+        return { data: null, error: bandError || { message: 'Band not found' } };
+      }
 
-    if (membersError) {
-      console.error('Error fetching band members:', membersError);
+      console.log('[bandService] Fetched band data:', bandData);
+
+      // Then get the members separately (without nested query to avoid RLS issues)
+      const { data: membersData, error: membersError } = await supabase
+        .from('band_members')
+        .select('*')
+        .eq('band_id', bandId);
+      
+      if (membersError) {
+        console.error('[bandService] Error fetching band members:', membersError);
+        // Don't fail the whole request if we can't get members
+        return { 
+          data: { 
+            ...bandData, 
+            members: [],
+            member_count: 0
+          }, 
+          error: null 
+        };
+      }
+
+      console.log(`[bandService] Found ${membersData?.length || 0} members`);
+
+      // If we have members, fetch their profile data
+      let membersWithProfiles = [];
+      if (membersData && membersData.length > 0) {
+        try {
+          // Use a single query to fetch all profiles at once for better performance
+          const userIds = membersData.map(m => m.user_id);
+          const { data: profilesData, error: profilesError } = await supabase
+            .from('profiles')
+            .select('id, user_id, display_name, avatar_url')
+            .in('user_id', userIds);
+          
+          if (profilesError) {
+            console.error('[bandService] Error fetching member profiles:', profilesError);
+            throw profilesError;
+          }
+          
+          // Create a map of user_id to profile for quick lookup
+          const profileMap = new Map();
+          profilesData?.forEach(profile => {
+            profileMap.set(profile.user_id, profile);
+          });
+          
+          // Merge member data with profile data
+          membersWithProfiles = membersData.map(member => ({
+            ...member,
+            user: profileMap.get(member.user_id) || { 
+              id: member.user_id, 
+              display_name: 'Unknown User', 
+              avatar_url: null 
+            }
+          }));
+          
+        } catch (profileError) {
+          console.error('[bandService] Error processing member profiles:', profileError);
+          // Fallback to minimal member data if we can't get profiles
+          membersWithProfiles = membersData.map(member => ({
+            ...member,
+            user: { 
+              id: member.user_id, 
+              display_name: 'Unknown User', 
+              avatar_url: null 
+            }
+          }));
+        }
+      }
+
+      // Combine the data
+      const combinedData: Band = {
+        ...bandData,
+        members: membersWithProfiles,
+        member_count: membersWithProfiles.length
+      };
+
+      console.log('[bandService] Returning band data with', combinedData.member_count, 'members');
+      return { data: combinedData, error: null };
+      
+    } catch (error) {
+      console.error('[bandService] Unexpected error in getBand:', error);
+      return { 
+        data: null, 
+        error: error instanceof Error ? error : new Error('An unexpected error occurred') 
+      };
     }
-
-    // Combine the data
-    const combinedData = {
-      ...bandData,
-      members: membersWithProfiles
-    };
-
-    return { data: combinedData, error: membersError };
   },
 
   // Get bands that a user is a member of
@@ -168,47 +219,98 @@ export const bandService = {
     }
   },
 
-  // Create a new band
+  // Create a new band and add the creator as a leader
   async createBand(name: string, description: string): Promise<{ data: Band | null; error: any }> {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { data: null, error: 'Not authenticated' };
+    try {
+      // Verify user is authenticated
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError || !user) {
+        console.error('Authentication error:', userError);
+        return { data: null, error: 'Not authenticated' };
+      }
 
-    const { data, error } = await supabase
-      .from('bands')
-      .insert({
-        name,
-        description,
-        created_by: user.id
-      })
-      .select()
-      .single();
+      // Start a transaction using a stored procedure or multiple operations
+      // First create the band
+      const { data: createdBand, error: createError } = await supabase
+        .from('bands')
+        .insert({
+          name: name.trim(),
+          description: description.trim(),
+          created_by: user.id,
+          is_active: true
+        })
+        .select('*')
+        .single();
 
-    if (error) {
-      return { data: null, error };
-    }
+      if (createError || !createdBand) {
+        console.error('Error creating band:', createError);
+        return { 
+          data: null, 
+          error: createError?.message || 'Failed to create band. Please try again.' 
+        };
+      }
 
-    if (data) {
-      // Add the creator as the leader
+      // Then add the creator as a band leader
       const { error: memberError } = await supabase
         .from('band_members')
         .insert({
-          band_id: data.id,
+          band_id: createdBand.id,
           user_id: user.id,
-          role: 'leader'
+          role: 'leader',
+          joined_at: new Date().toISOString()
         });
 
       if (memberError) {
-        console.error('Failed to add band creator as leader:', memberError);
-        // Try to delete the band if we can't add the creator as leader
+        console.error('Error adding creator as band leader:', memberError);
+        
+        // Try to clean up the band if we can't add the leader
         await supabase
           .from('bands')
           .delete()
-          .eq('id', data.id);
-        return { data: null, error: memberError };
+          .eq('id', createdBand.id);
+        
+        return { 
+          data: null, 
+          error: memberError.message || 'Failed to add you as a band leader. Please try again.' 
+        };
       }
-    }
 
-    return { data, error: null };
+      // Fetch the complete band data with members
+      const { data: completeBand, error: fetchError } = await this.getBand(createdBand.id);
+      
+      if (fetchError || !completeBand) {
+        console.error('Error fetching created band:', fetchError);
+        // The band was created and the leader was added, but we couldn't fetch the complete data
+        // This is not a critical error, so we'll still return success but log the issue
+        console.log('Band created successfully but could not fetch complete data');
+        return { 
+          data: { 
+            ...createdBand, 
+            member_count: 1,
+            members: [{
+              band_id: createdBand.id,
+              user_id: user.id,
+              role: 'leader',
+              joined_at: new Date().toISOString(),
+              user: {
+                id: user.id,
+                display_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
+                avatar_url: user.user_metadata?.avatar_url || null
+              }
+            }]
+          }, 
+          error: null 
+        };
+      }
+      
+      return { data: completeBand, error: null };
+    } catch (error) {
+      console.error('Unexpected error in createBand:', error);
+      return { 
+        data: null, 
+        error: error instanceof Error ? error.message : 'An unexpected error occurred' 
+      };
+    }
   },
 
   // Send a request to join a band

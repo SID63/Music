@@ -97,7 +97,7 @@ export default function ReviewForm({ revieweeProfileId, onSuccess }: ReviewFormP
         .select('id')
         .eq('booking_id', bookingId)
         .eq('reviewer_profile_id', currentProfile.id)
-        .single();
+        .maybeSingle();
 
       if (existingReview) {
         alert('You have already reviewed this person for this event.');

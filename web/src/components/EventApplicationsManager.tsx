@@ -395,13 +395,13 @@ const EventApplicationsManager: React.FC<EventApplicationsManagerProps> = ({ eve
    };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border p-6">
+    <div className="bg-card ui-glass ui-vibrant-border rounded-xl shadow-sm border border-border p-6">
       {/* Header with role-specific information */}
       <div className="mb-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">
+        <h3 className="text-lg font-semibold text-foreground mb-2">
           {userRole === 'musician' ? 'Applications for Your Events' : 'Event Applications Management'}
         </h3>
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-muted-foreground">
           {userRole === 'musician' 
             ? 'Review quotes and applications from other musicians for your events'
             : 'Manage and review all applications for your events'
@@ -427,11 +427,11 @@ const EventApplicationsManager: React.FC<EventApplicationsManagerProps> = ({ eve
       {/* Filters and Sorting */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Event</label>
+          <label className="block text-sm font-medium text-muted-foreground mb-2">Event</label>
           <select
             value={selectedEvent}
             onChange={(e) => setSelectedEvent(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-3 py-2 border border-input rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-background text-foreground"
           >
             <option value="all">All Events</option>
             {events.map(event => (
@@ -441,11 +441,11 @@ const EventApplicationsManager: React.FC<EventApplicationsManagerProps> = ({ eve
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Sort By</label>
+          <label className="block text-sm font-medium text-muted-foreground mb-2">Sort By</label>
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as 'date' | 'quote' | 'rating')}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-3 py-2 border border-input rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-background text-foreground"
           >
             <option value="date">Date</option>
             <option value="quote">Quote Amount</option>
@@ -454,11 +454,11 @@ const EventApplicationsManager: React.FC<EventApplicationsManagerProps> = ({ eve
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Order</label>
+          <label className="block text-sm font-medium text-muted-foreground mb-2">Order</label>
           <select
             value={sortOrder}
             onChange={(e) => setSortOrder(e.target.value as 'asc' | 'desc')}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-3 py-2 border border-input rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-background text-foreground"
           >
             <option value="desc">Newest/High to Low</option>
             <option value="asc">Oldest/Low to High</option>
@@ -466,11 +466,11 @@ const EventApplicationsManager: React.FC<EventApplicationsManagerProps> = ({ eve
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Min Rating</label>
+          <label className="block text-sm font-medium text-muted-foreground mb-2">Min Rating</label>
           <select
             value={filterByRating}
             onChange={(e) => setFilterByRating(Number(e.target.value))}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-3 py-2 border border-input rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-background text-foreground"
           >
             <option value={0}>Any Rating</option>
             <option value={1}>1+ Stars</option>
@@ -486,30 +486,30 @@ const EventApplicationsManager: React.FC<EventApplicationsManagerProps> = ({ eve
       {loading ? (
         <div className="text-center py-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2 text-gray-600">Loading applications...</p>
+          <p className="mt-2 text-muted-foreground">Loading applications...</p>
         </div>
              ) : sortedApplications.length === 0 ? (
-         <div className="text-center py-8 text-gray-600">
-           <div className="text-4xl mb-2">📝</div>
-           <p>No applications found for the selected criteria.</p>
-           {userRole === 'musician' && (
-             <p className="text-sm text-gray-500 mt-2">
-               When other musicians apply to your events, you'll see their quotes and requirements here.
-             </p>
-           )}
-         </div>
+         <div className="text-center py-8 text-muted-foreground">
+          <div className="text-4xl mb-2">📝</div>
+          <p>No applications found for the selected criteria.</p>
+          {userRole === 'musician' && (
+            <p className="text-sm text-muted-foreground mt-2">
+              When other musicians apply to your events, you'll see their quotes and requirements here.
+            </p>
+          )}
+        </div>
       ) : (
         <div className="space-y-4">
           {sortedApplications.map((application) => (
-            <div key={application.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+            <div key={application.id} className="border border-border rounded-lg p-4 hover:bg-muted/50 transition-colors bg-card/50">
               <div className="flex items-start justify-between mb-3">
                 <div className="flex-1">
-                                 <div className="flex items-center gap-3 mb-2">
-                   <h4 className="font-semibold text-lg text-gray-900">
+                  <div className="flex items-center gap-3 mb-2">
+                  <h4 className="font-semibold text-lg text-foreground">
                      {application.applied_by_type === 'band' && application.band ? (
                        <div>
                          <div>{application.band.name}</div>
-                         <div className="text-sm text-gray-600 font-normal">
+                         <div className="text-sm text-muted-foreground font-normal">
                            Applied by {application.musician_profile.display_name}
                          </div>
                        </div>
@@ -526,25 +526,25 @@ const EventApplicationsManager: React.FC<EventApplicationsManagerProps> = ({ eve
                    )}
                  </div>
                   
-                  <div className="text-sm text-gray-600 mb-2">
+                  <div className="text-sm text-muted-foreground mb-2">
                     <span className="font-medium">Event:</span> {application.event.title}
                     {application.event.location && (
                       <span className="ml-2">📍 {application.event.location}</span>
                     )}
                   </div>
                   
-                  <div className="text-sm text-gray-600">
+                  <div className="text-sm text-muted-foreground">
                     <span className="font-medium">Date:</span> {formatDate(application.event.starts_at)}
                   </div>
                 </div>
                 
                                  <div className="text-right">
-                   <div className="text-2xl font-bold text-green-600 mb-1">
-                     {formatCurrency(application.quotation || 0)}
-                   </div>
-                   <div className="text-xs text-gray-500">
-                     Updated: {formatDate(application.updated_at || application.created_at)}
-                   </div>
+                  <div className="text-2xl font-bold text-green-600 mb-1">
+                    {formatCurrency(application.quotation || 0)}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    Updated: {formatDate(application.updated_at || application.created_at)}
+                  </div>
                    {application.status === 'pending' && application.updated_at && 
                     new Date(application.updated_at) > new Date(application.created_at) && (
                      <div className="text-xs text-blue-600 font-medium mt-1">
@@ -556,33 +556,33 @@ const EventApplicationsManager: React.FC<EventApplicationsManagerProps> = ({ eve
 
               {/* Additional Requirements */}
               {application.additional_requirements && (
-                <div className="mt-3 pt-3 border-t border-gray-200">
-                  <div className="text-sm font-medium text-gray-700 mb-1">Additional Requirements:</div>
-                  <p className="text-sm text-gray-600">{application.additional_requirements}</p>
+                <div className="mt-3 pt-3 border-t border-border">
+                  <div className="text-sm font-medium text-muted-foreground mb-1">Additional Requirements:</div>
+                  <p className="text-sm text-muted-foreground">{application.additional_requirements}</p>
                 </div>
               )}
 
               {/* Musician Details */}
-              <div className="mt-3 pt-3 border-t border-gray-200">
+              <div className="mt-3 pt-3 border-t border-border">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <div className="text-sm font-medium text-gray-700 mb-1">Bio:</div>
-                    <p className="text-sm text-gray-600 line-clamp-2">
+                    <div className="text-sm font-medium text-muted-foreground mb-1">Bio:</div>
+                    <p className="text-sm text-muted-foreground line-clamp-2">
                       No bio provided
                     </p>
                   </div>
                   
                   <div>
-                    <div className="text-sm font-medium text-gray-700 mb-1">Genres:</div>
+                    <div className="text-sm font-medium text-muted-foreground mb-1">Genres:</div>
                     <div className="flex flex-wrap gap-1">
-                      <span className="text-sm text-gray-500">No genres specified</span>
+                      <span className="text-sm text-muted-foreground">No genres specified</span>
                     </div>
                   </div>
                 </div>
               </div>
 
                                             {/* Actions */}
-                <div className="mt-4 pt-3 border-t border-gray-200 flex gap-2">
+                <div className="mt-4 pt-3 border-t border-border flex gap-2">
                   <MessageButton 
                     recipientProfileId={application.musician_profile.id}
                     recipientName={application.musician_profile.display_name}
@@ -627,7 +627,7 @@ const EventApplicationsManager: React.FC<EventApplicationsManagerProps> = ({ eve
                   
                   <button 
                     onClick={() => handleViewProfile(application)}
-                    className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm font-medium"
+                    className="px-4 py-2 bg-muted text-foreground rounded-lg hover:bg-muted/80 transition-colors text-sm font-medium"
                   >
                     View Profile
                   </button>
@@ -639,23 +639,23 @@ const EventApplicationsManager: React.FC<EventApplicationsManagerProps> = ({ eve
 
       {/* Summary Stats */}
       {sortedApplications.length > 0 && (
-        <div className="mt-6 pt-4 border-t border-gray-200">
+        <div className="mt-6 pt-4 border-t border-border">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
             <div>
               <div className="text-2xl font-bold text-blue-600">{sortedApplications.length}</div>
-              <div className="text-sm text-gray-600">Total Applications</div>
+              <div className="text-sm text-muted-foreground">Total Applications</div>
             </div>
             <div>
               <div className="text-2xl font-bold text-green-600">
                 {formatCurrency(sortedApplications.reduce((sum, app) => sum + (app.quotation || 0), 0) / sortedApplications.length)}
               </div>
-              <div className="text-sm text-gray-600">Average Quote</div>
+              <div className="text-sm text-muted-foreground">Average Quote</div>
             </div>
             <div>
               <div className="text-2xl font-bold text-yellow-600">
                 0
               </div>
-              <div className="text-sm text-gray-600">High-Rated Musicians</div>
+              <div className="text-sm text-muted-foreground">High-Rated Musicians</div>
             </div>
           </div>
         </div>

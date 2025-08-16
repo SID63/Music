@@ -1,0 +1,339 @@
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { supabase } from '../lib/supabaseClient';
+import { useAuth } from '../context/AuthContext';
+import { Plus, Search, Filter, X } from 'lucide-react';
+import EventCard from '../components/EventCard';
+import EventCardSkeleton from '../components/skeletons/EventCardSkeleton';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../components/ui/select';
+
+interface Event {
+  id: string;
+  title: string;
+  description: string | null;
+  location: string | null;
+  event_type: string | null;
+  genres: string[] | null;
+  starts_at: string;
+  ends_at: string | null;
+  budget_min: number | null;
+  budget_max: number | null;
+  contact_email: string | null;
+  contact_phone: string | null;
+  requirements: string | null;
+  equipment_provided: string | null;
+  parking_info: string | null;
+  additional_notes: string | null;
+  organizer_profile_id: string;
+  posted_by_type: 'individual' | 'band';
+  band_id?: string;
+  organizer?: {
+    id: string;
+    display_name: string;
+    avatar_url: string | null;
+  };
+  band?: {
+    id: string;
+    name: string;
+    logo_url: string | null;
+  };
+}
+
+export default function EventsBoard() {
+  const { profile, user } = useAuth();
+  const [events, setEvents] = useState<Event[]>([]);
+  const [myEvents, setMyEvents] = useState<Event[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [eventTypeFilter, setEventTypeFilter] = useState<string | null>(null);
+  const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
+
+  useEffect(() => {
+    const loadEvents = async () => {
+      setIsLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('events')
+          .select('*')
+          .order('starts_at', { ascending: true });
+
+        if (error) throw error;
+        
+        if (data) {
+          setEvents(data);
+          
+          // Load user's events if logged in
+          if (user) {
+            const userEvents = data.filter(
+              (event) => event.organizer_profile_id === user.id
+            );
+            setMyEvents(userEvents);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading events:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadEvents();
+  }, [user]);
+
+  // Filter events based on search term and filters
+  const filteredEvents = events.filter(event => {
+    if (!event) return false;
+    
+    const searchLower = searchTerm.toLowerCase();
+    const matchesSearch = searchTerm === '' || 
+      (event.title?.toLowerCase().includes(searchLower) ||
+      event.description?.toLowerCase().includes(searchLower) ||
+      event.location?.toLowerCase().includes(searchLower));
+      
+    const matchesType = !eventTypeFilter || event.event_type === eventTypeFilter;
+    
+    return matchesSearch && matchesType;
+  });
+
+  // Get unique event types for filter dropdown
+  const eventTypes = Array.from(
+    new Set(events.map(event => event?.event_type).filter(Boolean))
+  ).filter(Boolean) as string[];
+
+  return (
+    <div className="container py-6 space-y-6">
+      {/* Header with Title and Actions */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-gray-900">Events</h1>
+          <p className="text-gray-600 mt-1">Discover and manage upcoming gigs and opportunities</p>
+        </div>
+        {(profile?.role === 'organizer' || profile?.role === 'musician') && (
+          <Link 
+            to="/events/new"
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 whitespace-nowrap h-fit transition-colors duration-200"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Create Event
+          </Link>
+        )}
+      </div>
+
+      {/* Search and Filters */}
+      <div className="mb-6">
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              type="text"
+              placeholder="Search events..."
+              className="w-full pl-10"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          
+          <div className="sm:hidden">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="w-full"
+              onClick={() => setIsMobileFiltersOpen(true)}
+            >
+              <Filter className="mr-2 h-4 w-4" />
+              Filters
+            </Button>
+          </div>
+          
+          <div className="hidden sm:flex gap-2">
+            <Select
+              value={eventTypeFilter || ''}
+              onValueChange={(value) => setEventTypeFilter(value || null)}
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="All Event Types" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">All Event Types</SelectItem>
+                {eventTypes.map((type) => (
+                  <SelectItem key={type} value={type}>
+                    {type}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            
+            {(searchTerm || eventTypeFilter) && (
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setSearchTerm('');
+                  setEventTypeFilter(null);
+                }}
+                className="whitespace-nowrap"
+              >
+                <X className="mr-2 h-4 w-4" />
+                Clear filters
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Mobile filters */}
+        {isMobileFiltersOpen && (
+          <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 sm:hidden">
+            <div className="bg-white rounded-lg w-full max-w-md max-h-[80vh] flex flex-col">
+              <div className="p-4 border-b flex items-center justify-between">
+                <h3 className="font-medium">Filters</h3>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={() => setIsMobileFiltersOpen(false)}
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
+              
+              <div className="p-4 space-y-4 overflow-y-auto">
+                <div>
+                  <label className="block text-sm font-medium mb-2">Event Type</label>
+                  <Select
+                    value={eventTypeFilter || ''}
+                    onValueChange={(value) => setEventTypeFilter(value || null)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="All Event Types" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">All Event Types</SelectItem>
+                      {eventTypes.map((type) => (
+                        <SelectItem key={type} value={type}>
+                          {type}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              
+              <div className="p-4 border-t flex justify-end gap-2">
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setSearchTerm('');
+                    setEventTypeFilter(null);
+                  }}
+                >
+                  Reset
+                </Button>
+                <Button onClick={() => setIsMobileFiltersOpen(false)}>
+                  Apply Filters
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Tabs */}
+      <Tabs defaultValue="all" className="w-full">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+          <h2 className="text-2xl font-bold tracking-tight">
+            {isLoading ? 'Loading events...' : `Events ${filteredEvents.length > 0 ? `(${filteredEvents.length})` : ''}`}
+          </h2>
+          
+          <TabsList className="grid w-full sm:w-auto grid-cols-2 sm:flex">
+            <TabsTrigger value="all">All Events</TabsTrigger>
+            <TabsTrigger value="my-events">My Events</TabsTrigger>
+          </TabsList>
+        </div>
+
+        {/* All Events Tab */}
+        <TabsContent value="all">
+          {isLoading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[...Array(6)].map((_, i) => (
+                <EventCardSkeleton key={i} />
+              ))}
+            </div>
+          ) : filteredEvents.length === 0 ? (
+            <div className="text-center py-12 bg-white rounded-xl border border-gray-200 p-8">
+              <div className="text-6xl mb-4">🎵</div>
+              <h3 className="text-lg font-medium text-gray-900 mb-1">
+                No events found
+              </h3>
+              <p className="text-gray-600 mb-6">
+                {searchTerm || eventTypeFilter 
+                  ? 'Try adjusting your search or filters' 
+                  : 'Check back later for new events'}
+              </p>
+              {(searchTerm || eventTypeFilter) && (
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setSearchTerm('');
+                    setEventTypeFilter(null);
+                  }}
+                >
+                  Clear all filters
+                </Button>
+              )}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredEvents.map((event) => (
+                <EventCard key={event.id} event={event} />
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        {/* My Events Tab */}
+        <TabsContent value="my-events">
+          {isLoading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[...Array(3)].map((_, i) => (
+                <EventCardSkeleton key={i} />
+              ))}
+            </div>
+          ) : myEvents.length === 0 ? (
+            <div className="text-center py-12 bg-white rounded-xl border border-gray-200 p-8">
+              <div className="text-6xl mb-4">📅</div>
+              <h3 className="text-lg font-medium text-gray-900 mb-1">
+                No events yet
+              </h3>
+              <p className="text-gray-600 mb-6">
+                {profile?.role === 'organizer' || profile?.role === 'musician'
+                  ? 'Create your first event to get started!'
+                  : 'You need to be logged in to view your events'}
+              </p>
+              {(profile?.role === 'organizer' || profile?.role === 'musician') && (
+                <Link to="/events/new">
+                  <Button>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Create Event
+                  </Button>
+                </Link>
+              )}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {myEvents.map((event) => (
+                <EventCard key={event.id} event={event} />
+              ))}
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}

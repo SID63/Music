@@ -159,9 +159,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [user]);
 
   const refreshProfile = async (userToRefresh = user) => {
-    if (!userToRefresh) return;
+    console.log('refreshProfile called with user:', userToRefresh?.id);
+    if (!userToRefresh) {
+      console.log('No user provided to refreshProfile');
+      return;
+    }
 
     try {
+      console.log('Fetching profile for user:', userToRefresh.id);
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -169,8 +174,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .single();
 
       if (error) {
+        console.log('Error fetching profile:', {
+          code: error.code,
+          message: error.message,
+          details: error.details
+        });
+        
         if (error.code === 'PGRST116') {
           // No profile found
+          console.log('No profile found for user:', userToRefresh.id);
           setProfile(null);
         } else {
           console.error('Profile query error:', error);
@@ -178,6 +190,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
+      console.log('Profile data received:', data);
       setProfile(data);
     } catch (error) {
       console.error('Error refreshing profile:', error);
@@ -360,17 +373,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isProfileComplete = useCallback((profile: any): boolean => {
     if (!profile) return false;
     
-    // Basic required fields
-    if (!profile.display_name || !profile.location || !profile.bio) {
+    // Only require display_name as a basic field
+    if (!profile.display_name) {
       return false;
     }
 
-    // Musician-specific required fields
+    // For musicians, require at least one genre and price_min
     if (profile.role === 'musician') {
       if (!profile.genres || profile.genres.length === 0) {
         return false;
       }
-      if (!profile.price_min) {
+      if (profile.price_min === null || profile.price_min === undefined) {
         return false;
       }
     }

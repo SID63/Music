@@ -21,6 +21,7 @@ export default function BandsPage() {
   const loadData = async () => {
     try {
       setLoading(true);
+      setError(null);
       
       // Load all bands (for organizers and musicians)
       const { data: bandsData, error: bandsError } = await bandService.getBands();
@@ -33,24 +34,31 @@ export default function BandsPage() {
 
       // If user is a musician, load additional data
       if (profile?.role === 'musician') {
-        // Load user's bands
-        const { data: userBandsData, error: userBandsError } = await bandService.getUserBands(profile.user_id);
-        if (userBandsError) {
-          console.error('Error loading user bands:', userBandsError);
-        } else {
-          setUserBands(userBandsData || []);
-        }
+        try {
+          // Load user's bands
+          const { data: userBandsData, error: userBandsError } = await bandService.getUserBands(profile.user_id);
+          if (userBandsError) {
+            console.error('Error loading user bands:', userBandsError);
+            // Don't return here, continue with other operations
+          } else {
+            setUserBands(userBandsData || []);
+          }
 
-        // Load band requests
-        const { data: requestsData, error: requestsError } = await bandService.getPendingRequests();
-        if (requestsError) {
-          console.error('Error loading band requests:', requestsError);
-        } else {
-          setBandRequests(requestsData || []);
+          // Load band requests
+          const { data: requestsData, error: requestsError } = await bandService.getPendingRequests();
+          if (requestsError) {
+            console.error('Error loading band requests:', requestsError);
+            // Don't return here, continue with other operations
+          } else {
+            setBandRequests(requestsData || []);
+          }
+        } catch (err) {
+          console.error('Error in loading user-specific band data:', err);
+          setError('Failed to load user-specific band data. Please try again.');
         }
       }
     } catch (err) {
-      console.error('Error loading data:', err);
+      console.error('Error in loadData:', err);
       setError('An unexpected error occurred. Please try again.');
     } finally {
       setLoading(false);
@@ -59,6 +67,8 @@ export default function BandsPage() {
 
   const handleAcceptRequest = async (requestId: string) => {
     try {
+      setLoading(true);
+      setError(null);
       const { error } = await bandService.acceptRequest(requestId);
       if (error) {
         console.error('Error accepting request:', error);
@@ -112,18 +122,17 @@ export default function BandsPage() {
   }
 
   const renderBandCard = (band: Band) => (
-    <Link
+    <div 
       key={band.id}
-      to={`/bands/${band.id}`}
-      className="block bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 border border-gray-200"
+      className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 border border-gray-200"
     >
       <div className="p-6">
         <div className="flex items-start justify-between mb-4">
-          <h3 className="text-xl font-semibold text-gray-900 truncate">
+          <h3 className="text-xl font-semibold text-gray-900 truncate" id={`band-name-${band.id}`}>
             {band.name}
           </h3>
           <div className="flex items-center text-sm text-gray-500">
-            <span className="mr-1">👥</span>
+            <span className="mr-1" aria-hidden="true">👥</span>
             <span>{band.member_count || 0} members</span>
           </div>
         </div>
@@ -136,10 +145,16 @@ export default function BandsPage() {
         
         <div className="flex items-center justify-between text-xs text-gray-500">
           <span>Created {new Date(band.created_at).toLocaleDateString()}</span>
-          <span className="text-blue-600 font-medium">View Details →</span>
+          <Link
+            to={`/bands/${band.id}`}
+            className="text-blue-600 font-medium hover:text-blue-800 hover:underline focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded px-2 py-1 -mr-2"
+            aria-label={`View details for ${band.name}`}
+          >
+            View Details <span aria-hidden="true">→</span>
+          </Link>
         </div>
       </div>
-    </Link>
+    </div>
   );
 
   const renderRequestCard = (request: BandRequest) => (

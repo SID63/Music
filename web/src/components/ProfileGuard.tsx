@@ -1,6 +1,6 @@
 import { useAuth } from '../context/AuthContext';
 import ProfileSetup from './ProfileSetup';
-import { useLocation } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useState } from 'react';
 import ProfileCompletionPrompt from './ProfileCompletionPrompt';
 
@@ -45,21 +45,11 @@ export default function ProfileGuard({ children, requireComplete = true, feature
 
   // If profile is incomplete and we require complete profiles
   if (requireComplete && isProfileIncomplete(profile)) {
-    // Don't show ProfileSetup if we're already on the setup page to avoid duplicates
-    if (location.pathname === '/setup') {
-      return <>{children}</>;
+    // Avoid redirect loops if already on setup
+    if (location.pathname !== '/setup') {
+      return <Navigate to="/setup" replace state={{ from: location.pathname }} />;
     }
-    
-    // Show the protected content but with a gentle prompt overlay
-    return (
-      <>
-        {children}
-        <ProfileCompletionPrompt 
-          feature={feature} 
-          onClose={() => setShowPrompt(false)} 
-        />
-      </>
-    );
+    return <>{children}</>;
   }
 
   // Profile is complete, show the protected content

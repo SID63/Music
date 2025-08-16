@@ -16,7 +16,7 @@ type Review = {
   booking: {
     event: {
       title: string;
-      date: string;
+      starts_at: string;
     };
   };
 };
@@ -76,7 +76,7 @@ export default function ReviewsPage() {
             avatar_url,
             role
           ),
-          booking:bookings!bookings_event_id_fkey(
+          booking:bookings!reviews_booking_id_fkey(
             event:events!bookings_event_id_fkey(
               title,
               starts_at
@@ -91,13 +91,33 @@ export default function ReviewsPage() {
         return;
       }
 
-      setReviews(reviewsData || []);
+      const normalized: Review[] = (reviewsData || []).map((r: any) => ({
+        id: r.id,
+        rating: r.rating,
+        comment: r.comment,
+        created_at: r.created_at,
+        reviewer_profile: Array.isArray(r.reviewer_profile)
+          ? r.reviewer_profile[0]
+          : r.reviewer_profile,
+        booking: r.booking
+          ? {
+              event: Array.isArray(r.booking?.event)
+                ? r.booking.event[0]
+                : r.booking.event,
+            }
+          : undefined,
+      }));
+
+      setReviews(normalized);
 
       // Calculate average rating
-      if (reviewsData && reviewsData.length > 0) {
-        const totalRating = reviewsData.reduce((sum, review) => sum + review.rating, 0);
-        setAverageRating(totalRating / reviewsData.length);
-        setTotalReviews(reviewsData.length);
+      if (normalized.length > 0) {
+        const totalRating = normalized.reduce((sum, review) => sum + review.rating, 0);
+        setAverageRating(totalRating / normalized.length);
+        setTotalReviews(normalized.length);
+      } else {
+        setAverageRating(0);
+        setTotalReviews(0);
       }
     } catch (error) {
       console.error('Error loading data:', error);
@@ -247,9 +267,9 @@ export default function ReviewsPage() {
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-4">
                       {review.reviewer_profile.avatar_url ? (
-                        <img 
-                          src={review.reviewer_profile.avatar_url} 
-                          alt="reviewer" 
+                        <img
+                          src={review.reviewer_profile.avatar_url}
+                          alt="reviewer"
                           className="w-12 h-12 rounded-full object-cover"
                         />
                       ) : (

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabaseClient';
-import { useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 
 export default function ProfileEdit() {
   const { profile, refreshProfile, clearInvalidTokens } = useAuth();
@@ -89,6 +89,11 @@ export default function ProfileEdit() {
     // Additional validation: check if file is actually an image
     const reader = new FileReader();
     reader.onload = async (e) => {
+      if (!e.target?.result || typeof e.target.result === 'string') {
+        alert('Invalid file type');
+        return;
+      }
+      
       const arr = new Uint8Array(e.target.result).subarray(0, 4);
       let header = '';
       for (let i = 0; i < arr.length; i++) {
@@ -193,15 +198,32 @@ export default function ProfileEdit() {
     }));
   };
 
-  if (!profile) {
+  const { user } = useAuth();
+
+  if (!user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-xl text-gray-600 font-medium">Loading profile...</p>
+        <div className="text-center p-6 max-w-md mx-auto">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">Not Signed In</h2>
+          <p className="text-gray-600 mb-6">Please sign in to edit your profile.</p>
+          <button 
+            onClick={() => navigate('/login')}
+            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Go to Login
+          </button>
         </div>
       </div>
     );
+  }
+
+  if (!profile) {
+    return <Navigate to="/setup" replace />;
   }
 
   return (
@@ -438,7 +460,7 @@ export default function ProfileEdit() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label htmlFor="price_min" className="block text-lg font-semibold text-gray-700 mb-3">
-                    Minimum Price ($)
+                    Minimum Price (₹)
                   </label>
                   <input
                     id="price_min"
@@ -453,7 +475,7 @@ export default function ProfileEdit() {
 
                 <div>
                   <label htmlFor="price_max" className="block text-lg font-semibold text-gray-700 mb-3">
-                    Maximum Price ($)
+                    Maximum Price (₹)
                   </label>
                   <input
                     id="price_max"
@@ -480,6 +502,60 @@ export default function ProfileEdit() {
                   className="w-full px-6 py-4 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-red-100 focus:border-red-500 transition-all duration-200"
                 />
                 <p className="text-sm text-gray-500 mt-2">Share a sample of your music or performance</p>
+                
+                {/* Video Preview */}
+                {formData.youtube_url && (
+                  <div className="mt-4">
+                    <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                      <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                        <svg className="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                        </svg>
+                        Video Preview
+                      </h4>
+                      
+                      {(() => {
+                        const videoIdMatch = formData.youtube_url.match(/[?&]v=([^&#]+)/) || formData.youtube_url.match(/youtu\.be\/([^?&#]+)/);
+                        const videoId = videoIdMatch ? videoIdMatch[1] : '';
+                        
+                        if (videoId) {
+                          return (
+                            <div className="space-y-3">
+                              <div className="aspect-video rounded-lg overflow-hidden shadow-md">
+                                <iframe
+                                  className="w-full h-full"
+                                  src={`https://www.youtube.com/embed/${videoId}`}
+                                  title="Video preview"
+                                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                  allowFullScreen
+                                />
+                              </div>
+                              <div className="flex items-center justify-between text-sm">
+                                <span className="text-green-600 font-medium">✓ Valid YouTube URL</span>
+                                <a 
+                                  href={formData.youtube_url} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="text-red-600 hover:text-red-700 font-medium"
+                                >
+                                  Open on YouTube →
+                                </a>
+                              </div>
+                            </div>
+                          );
+                        } else {
+                          return (
+                            <div className="text-center py-6 text-gray-500">
+                              <div className="text-2xl mb-2">⚠️</div>
+                              <p className="text-sm">Please enter a valid YouTube URL</p>
+                              <p className="text-xs mt-1">Format: https://www.youtube.com/watch?v=VIDEO_ID</p>
+                            </div>
+                          );
+                        }
+                      })()}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 

@@ -21,6 +21,8 @@ export default function ProfileSetup() {
     is_band: profile?.is_band || false,
   });
 
+  const [attempted, setAttempted] = useState(false);
+
   // Update form data when profile changes
   useEffect(() => {
     if (profile) {
@@ -39,28 +41,14 @@ export default function ProfileSetup() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    
-    // Validation
-    if (!formData.display_name?.trim()) {
-      alert('Please enter your display name');
-      return;
-    }
-    if (!formData.location?.trim()) {
-      alert('Please enter your location');
-      return;
-    }
-    if (!formData.bio?.trim()) {
-      alert('Please enter your bio');
-      return;
-    }
-    if (profile?.role === 'musician' && formData.genres.length === 0) {
-      alert('Please add at least one genre');
-      return;
-    }
-    if (profile?.role === 'musician' && !formData.price_min) {
-      alert('Please enter a minimum price');
-      return;
-    }
+    setAttempted(true);
+
+    // Validation (inline, block submit without alerts)
+    const isMusician = profile?.role === 'musician';
+    const validBasics = !!formData.display_name?.trim() && !!formData.location?.trim() && !!formData.bio?.trim();
+    const validMusician = !isMusician || (formData.genres.length > 0 && !!formData.price_min);
+    const isValid = validBasics && validMusician;
+    if (!isValid) return;
     
     setLoading(true);
     
@@ -232,6 +220,9 @@ export default function ProfileSetup() {
                   placeholder={profile.role === 'musician' ? 'Your name or band name' : 'Your organization name'}
                   required
                 />
+                {attempted && !formData.display_name?.trim() && (
+                  <p className="text-sm text-red-600 mt-1">Display name is required</p>
+                )}
               </div>
 
               <div>
@@ -244,6 +235,9 @@ export default function ProfileSetup() {
                   placeholder="City, State or Country"
                   required
                 />
+                {attempted && !formData.location?.trim() && (
+                  <p className="text-sm text-red-600 mt-1">Location is required</p>
+                )}
               </div>
             </div>
 
@@ -259,6 +253,9 @@ export default function ProfileSetup() {
                 }
                 required
               />
+              {attempted && !formData.bio?.trim() && (
+                <p className="text-sm text-red-600 mt-1">Bio is required</p>
+              )}
             </div>
 
             {/* Musician-specific fields */}
@@ -306,7 +303,7 @@ export default function ProfileSetup() {
                       + Add Genre
                     </button>
                   </div>
-                  {formData.genres.length === 0 && (
+                  {attempted && formData.genres.length === 0 && (
                     <p className="text-sm text-red-600 mt-1">Please add at least one genre</p>
                   )}
                 </div>
@@ -323,6 +320,9 @@ export default function ProfileSetup() {
                       min="0"
                       required
                     />
+                    {attempted && !formData.price_min && (
+                      <p className="text-sm text-red-600 mt-1">Minimum price is required</p>
+                    )}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Maximum Price ($)</label>
@@ -357,7 +357,7 @@ export default function ProfileSetup() {
             <div className="pt-4">
               <button
                 type="submit"
-                disabled={loading || (profile.role === 'musician' && formData.genres.length === 0)}
+                disabled={loading || !((!!formData.display_name?.trim()) && (!!formData.location?.trim()) && (!!formData.bio?.trim()) && (profile.role !== 'musician' || (formData.genres.length > 0 && !!formData.price_min)))}
                 className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors font-medium"
               >
                 {loading ? 'Setting Up Profile...' : 'Complete Profile & Get Started'}

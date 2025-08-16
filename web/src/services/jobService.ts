@@ -124,9 +124,9 @@ export const jobService = {
     }
     
     if (quotation) {
-      message += `💰 My quotation: $${quotation}\n`;
+      message += `💰 My quotation: ₹${quotation}\n`;
     } else if (musicianProfile.price_min && musicianProfile.price_max) {
-      message += `💰 My rate range: $${musicianProfile.price_min} - $${musicianProfile.price_max}\n`;
+      message += `💰 My rate range: ₹${musicianProfile.price_min} - ₹${musicianProfile.price_max}\n`;
     }
     
     message += `\nI'd love to discuss the details and see if we're a good fit for your event. Please let me know if you have any questions!\n\n`;

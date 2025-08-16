@@ -1,0 +1,747 @@
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { supabase } from '../lib/supabaseClient';
+import { useAuth } from '../context/AuthContext';
+import { Plus, Search, Filter, X } from 'lucide-react';
+import EventCard from '../components/EventCard';
+import EventCardSkeleton from '../components/skeletons/EventCardSkeleton';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../components/ui/select';
+
+// Moved Event type definition before its usage
+
+interface Event {
+  id: string;
+  title: string;
+  description: string | null;
+  location: string | null;
+  event_type: string | null;
+  genres: string[] | null;
+  starts_at: string;
+  ends_at: string | null;
+  budget_min: number | null;
+  budget_max: number | null;
+  contact_email: string | null;
+  contact_phone: string | null;
+  requirements: string | null;
+  equipment_provided: string | null;
+  parking_info: string | null;
+  additional_notes: string | null;
+  created_at: string;
+  organizer_profile_id: string;
+  band_id?: string;
+  posted_by_type?: 'individual' | 'band';
+  organizer?: {
+    id: string;
+    display_name: string | null;
+  };
+  band?: {
+    id: string;
+    name: string;
+    description?: string;
+  };
+};
+
+interface Event {
+  id: string;
+  title: string;
+  description: string | null;
+  location: string | null;
+  event_type: string | null;
+  genres: string[] | null;
+  starts_at: string;
+  ends_at: string | null;
+  budget_min: number | null;
+  budget_max: number | null;
+  contact_email: string | null;
+  contact_phone: string | null;
+  requirements: string | null;
+  equipment_provided: string | null;
+  parking_info: string | null;
+  additional_notes: string | null;
+  organizer_profile_id: string;
+  posted_by_type: 'individual' | 'band';
+  band_id?: string;
+  organizer?: {
+    id: string;
+    display_name: string;
+    avatar_url: string | null;
+  };
+  band?: {
+    id: string;
+    name: string;
+    logo_url: string | null;
+  };
+}
+
+export default function EventsBoard() {
+  const { profile, user } = useAuth();
+  const [events, setEvents] = useState<Event[]>([]);
+  const [myEvents, setMyEvents] = useState<Event[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [eventTypeFilter, setEventTypeFilter] = useState<string | null>(null);
+  const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
+
+  useEffect(() => {
+    const load = async () => {
+      setIsLoading(true);
+      try {
+        const { data } = await supabase
+          .from('events')
+          .select(`
+            id, title, description, location, event_type, genres, 
+            starts_at, ends_at, budget_min, budget_max, 
+            contact_email, contact_phone, requirements, 
+            equipment_provided, parking_info, additional_notes, created_at,
+            organizer_profile_id, band_id, posted_by_type
+          `)
+          .order('starts_at', { ascending: true });
+
+        const eventsData = (data as unknown as Event[]) || [];
+
+        if (eventsData.length > 0) {
+          const organizerIds = [...new Set(eventsData.map(e => e.organizer_profile_id))];
+          const { data: organizerProfiles } = await supabase
+            .from('profiles')
+            .select('id, display_name, avatar_url')
+            .in('id', organizerIds);
+
+          const bandIds = [...new Set(eventsData.filter(e => e.band_id).map(e => e.band_id!))];
+          let bandsData: any[] = [];
+
+          if (bandIds.length > 0) {
+            const { data: bands } = await supabase
+              .from('bands')
+              .select('id, name, description, logo_url')
+              .in('id', bandIds);
+            bandsData = bands || [];
+          }
+
+          const eventsWithOrganizers = eventsData.map(event => ({
+            ...event,
+            organizer: organizerProfiles?.find(p => p.id === event.organizer_profile_id),
+            band: bandsData.find(b => b.id === event.band_id)
+          }));
+          setEvents(eventsWithOrganizers);
+        } else {
+          setEvents([]);
+        }
+
+        if (user && (profile?.role === 'organizer' || profile?.role === 'musician')) {
+          const { data: myEventsData } = await supabase
+            .from('events')
+            .select(`
+              id, title, description, location, event_type, genres, 
+              starts_at, ends_at, budget_min, budget_max, 
+              contact_email, contact_phone, requirements, 
+              equipment_provided, parking_info, additional_notes, created_at,
+              organizer_profile_id, band_id, posted_by_type
+            `)
+            .eq('organizer_profile_id', profile.id)
+            .order('starts_at', { ascending: true });
+
+          const myEventsWithOrganizers = (myEventsData || []).map((event: any) => ({
+            ...event,
+            organizer: { id: profile.id, display_name: profile.display_name, avatar_url: profile.avatar_url }
+          }));
+
+          setMyEvents(myEventsWithOrganizers);
+        }
+      } catch (error) {
+        console.error('Error loading events:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    load();
+  }, [user, profile]);
+
+  const filteredEvents = events.filter(event => {
+    const matchesSearch = searchTerm === '' || 
+      event.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      event.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      event.location?.toLowerCase().includes(searchTerm.toLowerCase());
+      
+    const matchesType = !eventTypeFilter || event.event_type === eventTypeFilter;
+    
+    return matchesSearch && matchesType;
+  });
+
+  const eventTypes = [...new Set(events.map(event => event.event_type).filter(Boolean))];
+
+  return (
+    <div className="container py-6 space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-gray-900">Events</h1>
+          <p className="text-gray-600 mt-1">Discover and manage upcoming gigs and opportunities</p>
+        </div>
+        {(profile?.role === 'organizer' || profile?.role === 'musician') && (
+          <Link 
+            to="/events/new"
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 whitespace-nowrap h-fit transition-colors duration-200"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Create Event
+          </Link>
+        )}
+      </div>
+      
+      <div className="mb-6">
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              type="text"
+              placeholder="Search events by title, description, or location..."
+              className="w-full pl-10"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          
+          <div className="sm:hidden">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="w-full"
+              onClick={() => setIsMobileFiltersOpen(true)}
+            >
+              <Filter className="mr-2 h-4 w-4" />
+              Filters
+            </Button>
+          </div>
+          
+          <div className="hidden sm:flex gap-2">
+            <Select
+              value={eventTypeFilter || ''}
+              onValueChange={(value) => setEventTypeFilter(value || null)}
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="All Event Types" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">All Event Types</SelectItem>
+                {eventTypes.map((type) => (
+                  <SelectItem key={type} value={type}>
+                    {type.replace(/_/g, ' ')}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            
+            {(searchTerm || eventTypeFilter) && (
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setSearchTerm('');
+                  setEventTypeFilter(null);
+                }}
+                className="whitespace-nowrap"
+              >
+                <X className="mr-2 h-4 w-4" />
+                Clear filters
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {isMobileFiltersOpen && (
+          <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 sm:hidden">
+            <div className="bg-white rounded-lg w-full max-w-md max-h-[80vh] flex flex-col">
+              <div className="p-4 border-b flex items-center justify-between">
+                <h3 className="font-medium">Filters</h3>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={() => setIsMobileFiltersOpen(false)}
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
+              
+              <div className="p-4 space-y-4 overflow-y-auto">
+                <div>
+                  <label className="block text-sm font-medium mb-2">Event Type</label>
+                  <Select
+                    value={eventTypeFilter || ''}
+                    onValueChange={(value) => setEventTypeFilter(value || null)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="All Event Types" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">All Event Types</SelectItem>
+                      {eventTypes.map((type) => (
+                        <SelectItem key={type} value={type}>
+                          {type.replace(/_/g, ' ')}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              
+              <div className="p-4 border-t flex justify-end gap-2">
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setSearchTerm('');
+                    setEventTypeFilter(null);
+                  }}
+                >
+                  Reset
+                </Button>
+                <Button onClick={() => setIsMobileFiltersOpen(false)}>
+                  Apply Filters
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <Tabs defaultValue="all" className="w-full">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+          <h2 className="text-2xl font-bold tracking-tight">
+            {isLoading ? 'Loading events...' : `Events ${filteredEvents.length > 0 ? `(${filteredEvents.length})` : ''}`}
+          </h2>
+          
+          <TabsList className="grid w-full sm:w-auto grid-cols-2 sm:flex">
+            <TabsTrigger value="all">All Events</TabsTrigger>
+            <TabsTrigger value="my-events">My Events</TabsTrigger>
+          </TabsList>
+        </div>
+        
+        <TabsContent value="all">
+          {isLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[...Array(6)].map((_, i) => (
+                <EventCardSkeleton key={i} />
+              ))}
+            </div>
+          ) : filteredEvents.length === 0 ? (
+            <div className="text-center py-12 bg-white rounded-xl border border-gray-200 p-8">
+              <div className="text-6xl mb-4">🎵</div>
+              <h3 className="text-lg font-medium text-gray-900 mb-1">
+                {searchTerm || eventTypeFilter ? 'No matching events' : 'No events found'}
+              </h3>
+              <p className="text-gray-500 mb-6">
+                {searchTerm || eventTypeFilter 
+                  ? 'Try adjusting your search or filters'
+                  : 'No events have been posted yet. Be the first to create one!'}
+              </p>
+              {(profile?.role === 'organizer' || profile?.role === 'musician') && (
+                <Link 
+                  to="/events/new" 
+                  className="inline-flex items-center justify-center px-6 py-2.5 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create Event
+                </Link>
+              )}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredEvents.map((event) => (
+                <EventCard
+                  key={event.id}
+                  id={event.id}
+                  title={event.title}
+                  description={event.description || ''}
+                  location={event.location || 'Location not specified'}
+                  event_type={event.event_type || null}
+                  genres={event.genres}
+                  starts_at={event.starts_at}
+                  ends_at={event.ends_at}
+                  budget_min={event.budget_min}
+                  budget_max={event.budget_max}
+                />
+              ))}
+            </div>
+          )}
+        </TabsContent>
+        
+        <TabsContent value="my-events">
+          {isLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[...Array(3)].map((_, i) => (
+                <EventCardSkeleton key={`my-event-${i}`} />
+              ))}
+            </div>
+          ) : myEvents.length === 0 ? (
+            <div className="text-center py-12 bg-white rounded-xl border border-gray-200 p-8">
+              <div className="text-6xl mb-4">🎵</div>
+              <h3 className="text-lg font-medium text-gray-900 mb-1">No events found</h3>
+              <p className="text-gray-500 mb-6">
+                You haven't created any events yet. Create your first event to get started!
+              </p>
+              <Link 
+                to="/events/new" 
+                className="inline-flex items-center justify-center px-6 py-2.5 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200"
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Create Event
+              </Link>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {myEvents.map((event) => (
+                <EventCard
+                  key={event.id}
+                  id={event.id}
+                  title={event.title}
+                  description={event.description || ''}
+                  location={event.location || 'Location not specified'}
+                  event_type={event.event_type || null}
+                  genres={event.genres}
+                  starts_at={event.starts_at}
+                  ends_at={event.ends_at}
+                  budget_min={event.budget_min}
+                  budget_max={event.budget_max}
+                />
+              ))}
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+  };
+
+  // Get unique event types for filter dropdown
+  const eventTypes = Array.from(new Set(events.map(event => event?.event_type).filter(Boolean))).filter(Boolean) as string[];
+
+  return (
+    <div className="container py-6 space-y-6">
+      {/* Header with Title and Actions */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-gray-900">Events</h1>
+          <p className="text-gray-600 mt-1">Discover and manage upcoming gigs and opportunities</p>
+        </div>
+        {(profile?.role === 'organizer' || profile?.role === 'musician') && (
+          <Link 
+            to="/events/new"
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 whitespace-nowrap h-fit transition-colors duration-200"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Create Event
+          </Link>
+        )}
+      </div>
+      
+      {/* Search and Filter Bar */}
+      <div className="mb-6">
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              type="text"
+              placeholder="Search events by title, description, or location..."
+              className="w-full pl-10"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          
+          <div className="sm:hidden">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="w-full"
+              onClick={() => setIsMobileFiltersOpen(true)}
+            >
+              <Filter className="mr-2 h-4 w-4" />
+              Filters
+            </Button>
+          </div>
+          
+          <div className="hidden sm:flex gap-2">
+            <Select
+              value={eventTypeFilter || ''}
+              onValueChange={(value) => setEventTypeFilter(value || null)}
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="All Event Types" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">All Event Types</SelectItem>
+                {eventTypes.map((type) => (
+                  <SelectItem key={type} value={type}>
+                    {type.replace(/_/g, ' ')}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            
+            {(searchTerm || eventTypeFilter) && (
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setSearchTerm('');
+                  setEventTypeFilter(null);
+                }}
+                className="whitespace-nowrap"
+              >
+                <X className="mr-2 h-4 w-4" />
+                Clear filters
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Mobile filter dialog */}
+        {isMobileFiltersOpen && (
+          <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 sm:hidden">
+            <div className="bg-white rounded-lg w-full max-w-md max-h-[80vh] flex flex-col">
+              <div className="p-4 border-b flex items-center justify-between">
+                <h3 className="font-medium">Filters</h3>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={() => setIsMobileFiltersOpen(false)}
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
+              
+              <div className="p-4 space-y-4 overflow-y-auto">
+                <div>
+                  <label className="block text-sm font-medium mb-2">Event Type</label>
+                  <Select
+                    value={eventTypeFilter || ''}
+                    onValueChange={(value) => setEventTypeFilter(value || null)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="All Event Types" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">All Event Types</SelectItem>
+                      {eventTypes.map((type) => (
+                        <SelectItem key={type} value={type}>
+                          {type.replace(/_/g, ' ')}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              
+              <div className="p-4 border-t flex justify-end gap-2">
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setSearchTerm('');
+                    setEventTypeFilter(null);
+                  }}
+                >
+                  Reset
+                </Button>
+                <Button onClick={() => setIsMobileFiltersOpen(false)}>
+                  Apply Filters
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Events Grid */}
+      <Tabs defaultValue="all" className="w-full">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+          <h2 className="text-2xl font-bold tracking-tight">
+            {isLoading ? 'Loading events...' : `Events ${filteredEvents.length > 0 ? `(${filteredEvents.length})` : ''}`}
+          </h2>
+          
+          <TabsList className="grid w-full sm:w-auto grid-cols-2 sm:flex">
+            <TabsTrigger value="all">All Events</TabsTrigger>
+            <TabsTrigger value="my-events">My Events</TabsTrigger>
+          </TabsList>
+        </div>
+        
+        <TabsContent value="all">
+          {isLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[...Array(6)].map((_, i) => (
+                <EventCardSkeleton key={i} />
+              ))}
+            </div>
+          ) : filteredEvents.length === 0 ? (
+          >
+            All Events
+          </button>
+          
+          {(profile?.role === 'organizer' || profile?.role === 'musician') && (
+            <>
+              <button
+                onClick={() => setViewMode('my-events')}
+                className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${
+                  viewMode === 'my-events'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                My Events
+                {myEvents.length > 0 && (
+                  <span className="ml-2 bg-blue-100 text-blue-600 text-xs font-medium px-2 py-0.5 rounded-full">
+                    {myEvents.length}
+                  </span>
+                )}
+              </button>
+              
+              <button
+                onClick={() => setViewMode('applications')}
+                className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${
+                  viewMode === 'applications'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                Applications
+              </button>
+            </>
+          )}
+        </nav>
+      </div>
+      
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Genre</label>
+                <select
+                  value={selectedGenre}
+                  onChange={(e) => setSelectedGenre(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="all">All Genres</option>
+                  {allGenres.map(genre => (
+                    <option key={genre} value={genre}>{genre}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+             {/* My Events Section */}
+       {user && (profile?.role === 'organizer' || profile?.role === 'musician') && myEvents.length > 0 && (
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold tracking-tight mb-6">My Events</h2>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {myEvents.map((event) => (
+              <EventCard key={event.id} event={event} isMyEvent={true} />
+            ))}
+        </div>
+                    </div>
+                  )}
+
+      {/* Event Applications Management Section */}
+      {user && (profile?.role === 'organizer' || profile?.role === 'musician') && myEvents.length > 0 && (
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold tracking-tight mb-6">Event Applications</h2>
+          <EventApplicationsManager events={myEvents} userRole={profile?.role} />
+        </div>
+      )}
+
+      {/* My Applications Section for Musicians */}
+      {user && profile?.role === 'musician' && (
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold tracking-tight mb-6">My Applications</h2>
+          <MyApplicationsManager />
+        </div>
+      )}
+      
+      {/* Debug info for organizers and musicians with events */}
+      {user && (profile?.role === 'organizer' || profile?.role === 'musician') && myEvents.length > 0 && (
+        <div className="mb-8 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <h3 className="text-lg font-semibold text-yellow-800 mb-2">Debug Info for Event Posters</h3>
+          <div className="text-sm text-yellow-700 space-y-1">
+            <div>User ID: {user.id}</div>
+            <div>Profile Role: {profile.role}</div>
+            <div>My Events Count: {myEvents.length}</div>
+            <div>Profile ID: {profile.id}</div>
+            <div>Can View Applications: ✅ Yes</div>
+                </div>
+              </div>
+      )}
+
+      {/* Events Grid */}
+      <Tabs defaultValue="all" className="w-full">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+          <h2 className="text-2xl font-bold tracking-tight">
+            {isLoading ? 'Loading events...' : `Events ${filteredEvents.length > 0 ? `(${filteredEvents.length})` : ''}`}
+          </h2>
+          
+          <TabsList className="grid w-full sm:w-auto grid-cols-2 sm:flex">
+            <TabsTrigger value="all">All Events</TabsTrigger>
+            <TabsTrigger value="my-events">My Events</TabsTrigger>
+          </TabsList>
+        </div>
+        
+        <TabsContent value="all">
+          {isLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[...Array(6)].map((_, i) => (
+                <EventCardSkeleton key={i} />
+              ))}
+            </div>
+          ) : filteredEvents.length === 0 ? (
+        <div className="bg-white rounded-xl shadow-sm border p-8 text-center text-gray-600">
+          <div className="text-6xl mb-4">🎵</div>
+          <div className="text-xl font-medium mb-2">No events found</div>
+          <div className="text-gray-500 mb-4">
+            {events.length === 0 ? 'No events have been posted yet.' : 'Try adjusting your filters.'}
+          </div>
+                     {(profile?.role === 'organizer' || profile?.role === 'musician') && (
+             <Link to="/events/post" className="text-blue-600 hover:underline font-medium">
+               Be the first to post an event!
+             </Link>
+           )}
+            </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {filteredEvents.map((event) => (
+            <EventCard key={event.id} event={event} />
+          ))}
+        </div>
+      )}
+
+      {/* Application Form Modal */}
+      {showApplicationForm && selectedEvent && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <EventApplicationForm
+              event={selectedEvent}
+              onSuccess={() => {
+                setShowApplicationForm(false);
+                setSelectedEvent(null);
+                // Optionally refresh the page or show success message
+                window.location.reload();
+              }}
+              onCancel={() => {
+                setShowApplicationForm(false);
+                setSelectedEvent(null);
+              }}
+            />
+          </div>
+        </div>
+      )}
+      
+    </div>
+  );
+}
+
+
+
+

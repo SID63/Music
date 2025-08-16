@@ -55,7 +55,7 @@ const EventCreationTest: React.FC = () => {
         ends_at: new Date(Date.now() + 172800000).toISOString(), // day after tomorrow
         budget_min: 100,
         budget_max: 500,
-        contact_email: profile.email || 'test@example.com',
+        contact_email: user.email || 'test@example.com',
         contact_phone: '123-456-7890',
         requirements: 'Test requirements',
         equipment_provided: 'Test equipment',

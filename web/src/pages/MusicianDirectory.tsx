@@ -2,12 +2,19 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { Link } from 'react-router-dom';
 import type { Profile } from '../context/AuthContext';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 export default function MusicianDirectory() {
   const [musicians, setMusicians] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedGenre, setSelectedGenre] = useState('');
+  const [selectedGenre, setSelectedGenre] = useState('all');
   const [priceRange, setPriceRange] = useState('all');
 
   useEffect(() => {
@@ -35,7 +42,7 @@ export default function MusicianDirectory() {
                          musician.bio?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          musician.location?.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesGenre = !selectedGenre || musician.genres?.includes(selectedGenre);
+    const matchesGenre = selectedGenre === 'all' || musician.genres?.includes(selectedGenre);
     
     const matchesPrice = priceRange === 'all' || 
       (priceRange === 'low' && musician.price_max && musician.price_max <= 200) ||
@@ -92,209 +99,186 @@ export default function MusicianDirectory() {
         </div>
 
         {/* Search and Filters */}
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-8 mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">Search & Filter</h2>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-3">Search Musicians</label>
-              <div className="relative">
-                <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-                <input
-                  type="text"
-                  placeholder="Name, bio, or location..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200"
-                />
+        <Card className="shadow-xl border-0 mb-8">
+          <CardHeader>
+            <CardTitle className="text-2xl text-center">Search & Filter</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="search">Search Musicians</Label>
+                <div className="relative">
+                  <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                  <Input
+                    id="search"
+                    type="text"
+                    placeholder="Name, bio, or location..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="genre">Music Genre</Label>
+                <Select value={selectedGenre} onValueChange={setSelectedGenre}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Genres" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Genres</SelectItem>
+                    {allGenres.map(genre => (
+                      <SelectItem key={genre} value={genre}>{genre}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="price">Price Range</Label>
+                <Select value={priceRange} onValueChange={setPriceRange}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Prices" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Prices</SelectItem>
+                    <SelectItem value="low">Under $200</SelectItem>
+                    <SelectItem value="medium">$200 - $1000</SelectItem>
+                    <SelectItem value="high">Over $500</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="flex items-end">
+                <Button
+                  onClick={() => {
+                    setSearchTerm('');
+                    setSelectedGenre('all');
+                    setPriceRange('all');
+                  }}
+                  variant="outline"
+                  className="w-full"
+                >
+                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  Clear Filters
+                </Button>
               </div>
             </div>
-            
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-3">Music Genre</label>
-              <select
-                value={selectedGenre}
-                onChange={(e) => setSelectedGenre(e.target.value)}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-purple-100 focus:border-purple-500 transition-all duration-200"
-              >
-                <option value="">All Genres</option>
-                {allGenres.map(genre => (
-                  <option key={genre} value={genre}>{genre}</option>
-                ))}
-              </select>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-3">Price Range</label>
-              <select
-                value={priceRange}
-                onChange={(e) => setPriceRange(e.target.value)}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-green-100 focus:border-green-500 transition-all duration-200"
-              >
-                <option value="all">All Prices</option>
-                <option value="low">Under $200</option>
-                <option value="medium">$200 - $1000</option>
-                <option value="high">Over $500</option>
-              </select>
-            </div>
-            
-            <div className="flex items-end">
-              <button
-                onClick={() => {
-                  setSearchTerm('');
-                  setSelectedGenre('');
-                  setPriceRange('all');
-                }}
-                className="w-full px-6 py-3 bg-gradient-to-r from-gray-500 to-gray-600 text-white rounded-xl hover:from-gray-600 hover:to-gray-700 transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-              >
-                <svg className="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-                Clear Filters
-              </button>
-            </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
         {/* Results Count */}
         <div className="flex justify-between items-center mb-8">
-          <div className="bg-white rounded-xl px-6 py-3 shadow-sm border border-gray-200">
-            <p className="text-gray-700 font-medium">
-              <span className="text-blue-600 font-bold">{filteredMusicians.length}</span> of {musicians.length} musicians found
-            </p>
-          </div>
+          <Card className="shadow-sm border-0">
+            <CardContent className="pt-6">
+              <p className="text-gray-700 font-medium">
+                <span className="text-blue-600 font-bold">{filteredMusicians.length}</span> of {musicians.length} musicians found
+              </p>
+            </CardContent>
+          </Card>
           {filteredMusicians.length > 0 && (
             <div className="text-sm text-gray-500">
-              {searchTerm || selectedGenre || priceRange !== 'all' ? 'Filtered results' : 'All musicians'}
+              {searchTerm || selectedGenre !== 'all' || priceRange !== 'all' ? 'Filtered results' : 'All musicians'}
             </div>
           )}
         </div>
 
         {/* Musician Cards */}
         {filteredMusicians.length === 0 ? (
-          <div className="text-center py-16 bg-white rounded-2xl shadow-xl border border-gray-200">
-            <div className="text-8xl mb-6">🎵</div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-3">No musicians found</h3>
-            <p className="text-gray-600 text-lg mb-6">Try adjusting your search criteria or browse all musicians</p>
-            <button
-              onClick={() => {
-                setSearchTerm('');
-                setSelectedGenre('');
-                setPriceRange('all');
-              }}
-              className="px-8 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:from-blue-600 hover:to-purple-700 transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-            >
-              Show All Musicians
-            </button>
-          </div>
+          <Card className="text-center py-16 shadow-xl border-0">
+            <CardContent>
+              <div className="text-8xl mb-6">🎵</div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-3">No musicians found</h3>
+              <p className="text-gray-600 text-lg mb-6">Try adjusting your search criteria or browse all musicians</p>
+              <Button
+                onClick={() => {
+                  setSearchTerm('');
+                  setSelectedGenre('all');
+                  setPriceRange('all');
+                }}
+                size="lg"
+                className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
+              >
+                Show All Musicians
+              </Button>
+            </CardContent>
+          </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {filteredMusicians.map((musician) => (
-              <div key={musician.id} className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2">
+              <Card key={musician.id} className="overflow-hidden hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 border-0 shadow-xl">
                 {/* Card Header */}
                 <div className="relative h-48 bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500">
-                  <img
-                    src={musician.avatar_url || `data:image/svg+xml;base64,${btoa(`
-                      <svg width="400" height="200" viewBox="0 0 400 200" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <rect width="400" height="200" fill="#6B7280"/>
-                        <text x="200" y="110" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="16" font-weight="bold">No Image</text>
-                      </svg>
-                    `)}`}
-                    alt={musician.display_name || 'Musician'}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      e.currentTarget.src = `data:image/svg+xml;base64,${btoa(`
-                        <svg width="400" height="200" viewBox="0 0 400 200" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <rect width="400" height="200" fill="#6B7280"/>
-                          <text x="200" y="110" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="16" font-weight="bold">No Image</text>
-                        </svg>
-                      `)}`;
-                    }}
-                  />
-                  <div className="absolute top-4 right-4">
-                    <span className="px-3 py-1 bg-white bg-opacity-95 text-gray-800 rounded-full text-sm font-semibold shadow-lg">
-                      {musician.is_band ? '🎸 Band' : '🎵 Musician'}
-                    </span>
-                  </div>
-                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4">
-                    <h3 className="text-xl font-bold text-white">
-                      {musician.display_name || 'Unnamed Musician'}
-                    </h3>
-                  </div>
+                  <Avatar className="w-32 h-32 mx-auto mt-8 border-4 border-white shadow-lg">
+                    <AvatarImage 
+                      src={musician.avatar_url} 
+                      alt={musician.display_name}
+                    />
+                    <AvatarFallback className="text-2xl font-bold">
+                      {musician.display_name?.[0]?.toUpperCase() || 'M'}
+                    </AvatarFallback>
+                  </Avatar>
                 </div>
 
                 {/* Card Content */}
-                <div className="p-6 space-y-4">
+                <CardHeader className="text-center pb-4">
+                  <CardTitle className="text-xl mb-2">{musician.display_name || 'Musician'}</CardTitle>
+                  <div className="flex flex-wrap gap-2 justify-center mb-3">
+                    {musician.genres?.slice(0, 3).map((genre) => (
+                      <Badge key={genre} variant="secondary" className={getGenreColor(genre)}>
+                        {genre}
+                      </Badge>
+                    ))}
+                    {musician.genres && musician.genres.length > 3 && (
+                      <Badge variant="outline">+{musician.genres.length - 3} more</Badge>
+                    )}
+                  </div>
                   {musician.location && (
-                    <div className="flex items-center gap-2 text-gray-600">
-                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="flex items-center justify-center text-gray-600 text-sm">
+                      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                       </svg>
-                      <span className="font-medium">{musician.location}</span>
+                      {musician.location}
                     </div>
                   )}
+                </CardHeader>
 
+                <CardContent className="pt-0">
                   {musician.bio && (
-                    <p className="text-gray-700 leading-relaxed line-clamp-3">
+                    <p className="text-gray-600 text-sm text-center mb-4 line-clamp-3">
                       {musician.bio}
                     </p>
                   )}
-
-                  {musician.genres && musician.genres.length > 0 && (
-                    <div>
-                      <label className="text-sm font-semibold text-gray-700 mb-3 block">Musical Genres</label>
-                      <div className="flex flex-wrap gap-2">
-                        {musician.genres.slice(0, 4).map((genre, index) => (
-                          <span
-                            key={index}
-                            className={`px-3 py-1 rounded-full text-xs font-semibold ${getGenreColor(genre)}`}
-                          >
-                            {genre}
-                          </span>
-                        ))}
-                        {musician.genres.length > 4 && (
-                          <span className="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-semibold">
-                            +{musician.genres.length - 4} more
-                          </span>
-                        )}
-                      </div>
+                  
+                  {musician.price_min && musician.price_max && (
+                    <div className="text-center mb-4">
+                      <span className="text-lg font-bold text-green-600">
+                        ${musician.price_min} - ${musician.price_max}
+                      </span>
+                      <p className="text-xs text-gray-500">per event</p>
                     </div>
                   )}
 
-                  {(musician.price_min || musician.price_max) && (
-                    <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-4 border border-green-200">
-                      <label className="text-sm font-semibold text-gray-700 mb-2 block">Pricing Range</label>
-                      <p className="text-xl font-bold text-green-600">
-                        ${musician.price_min || '0'} - ${musician.price_max || 'No max'}
-                      </p>
-                    </div>
-                  )}
-
-                  <div className="flex space-x-3 pt-4">
-                    <Link
-                      to={`/musicians/${musician.id}`}
-                      className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white text-center rounded-xl hover:from-blue-600 hover:to-purple-700 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-                    >
-                      View Profile
-                    </Link>
-                    {musician.youtube_url && (
-                      <a
-                        href={musician.youtube_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="px-4 py-3 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-                        title="Watch on YouTube"
-                      >
-                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
-                        </svg>
-                      </a>
-                    )}
+                  <div className="flex gap-2">
+                    <Button asChild className="flex-1" variant="outline">
+                      <Link to={`/musicians/${musician.id}`}>
+                        View Profile
+                      </Link>
+                    </Button>
+                    <Button asChild className="flex-1">
+                      <Link to={`/messages?conversation=${musician.id}`}>
+                        Message
+                      </Link>
+                    </Button>
                   </div>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
             ))}
           </div>
         )}

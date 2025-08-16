@@ -225,4 +225,91 @@ create policy reviews_insert on public.reviews
     )
   );
 
+-- Band chat messages for band members
+create table if not exists public.band_chat_messages (
+  id uuid primary key default uuid_generate_v4(),
+  band_id uuid not null references public.bands(id) on delete cascade,
+  sender_id uuid not null references auth.users(id) on delete cascade,
+  sender_name text not null,
+  content text not null,
+  created_at timestamptz not null default now()
+);
 
+-- Create indexes for better performance
+create index if not exists idx_band_chat_messages_band_id on public.band_chat_messages(band_id);
+create index if not exists idx_band_chat_messages_created_at on public.band_chat_messages(created_at desc);
+create index if not exists idx_band_chat_messages_sender_id on public.band_chat_messages(sender_id);
+
+-- Enable Row Level Security
+alter table public.band_chat_messages enable row level security;
+
+-- Policy 1: Only band members can read messages from their bands
+-- This automatically excludes organizers since they cannot be band members
+drop policy if exists band_chat_messages_read on public.band_chat_messages;
+create policy band_chat_messages_read on public.band_chat_messages
+  for select using (
+    exists (
+      select 1 from public.band_members bm
+      where bm.band_id = band_chat_messages.band_id
+      and bm.user_id = auth.uid()
+      and bm.role in ('leader', 'member')
+    )
+  );
+
+-- Policy 2: Only band members can insert messages
+drop policy if exists band_chat_messages_insert on public.band_chat_messages;
+create policy band_chat_messages_insert on public.band_chat_messages
+  for insert with check (
+    -- Ensure the sender is a member of the band
+    exists (
+      select 1 from public.band_members bm
+      where bm.band_id = band_chat_messages.band_id
+      and bm.user_id = auth.uid()
+      and bm.role in ('leader', 'member')
+    )
+    and
+    -- Ensure the sender_id matches the authenticated user
+    sender_id = auth.uid()
+  );
+
+-- Policy 3: Only the message sender can update their own messages
+drop policy if exists band_chat_messages_update on public.band_chat_messages;
+create policy band_chat_messages_update on public.band_chat_messages
+  for update using (
+    sender_id = auth.uid()
+  ) with check (
+    -- Ensure the sender is still a member of the band
+    exists (
+      select 1 from public.band_members bm
+      where bm.band_id = band_chat_messages.band_id
+      and bm.user_id = auth.uid()
+      and bm.role in ('leader', 'member')
+    )
+    and
+    sender_id = auth.uid()
+  );
+
+-- Policy 4: Only the message sender or band leaders can delete messages
+drop policy if exists band_chat_messages_delete on public.band_chat_messages;
+create policy band_chat_messages_delete on public.band_chat_messages
+  for delete using (
+    sender_id = auth.uid()
+    or
+    exists (
+      select 1 from public.band_members bm
+      where bm.band_id = band_chat_messages.band_id
+      and bm.user_id = auth.uid()
+      and bm.role = 'leader'
+    )
+  );
+
+-- Grant necessary permissions
+grant all on public.band_chat_messages to authenticated;
+
+-- Add comments for documentation
+comment on table public.band_chat_messages is 'Messages sent in band chat rooms. Only band members can access these messages.';
+comment on column public.band_chat_messages.band_id is 'Reference to the band this message belongs to';
+comment on column public.band_chat_messages.sender_id is 'Reference to the user who sent the message';
+comment on column public.band_chat_messages.sender_name is 'Display name of the sender at the time of sending';
+comment on column public.band_chat_messages.content is 'The message content';
+comment on column public.band_chat_messages.created_at is 'Timestamp when the message was created';

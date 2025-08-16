@@ -14,6 +14,7 @@ export default function BandDetailPage() {
   const [isLeader, setIsLeader] = useState(false);
   const [pendingRequests, setPendingRequests] = useState<BandRequest[]>([]);
   const [loadingRequests, setLoadingRequests] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Helper function to parse band details from description
   const parseBandDetails = (description: string) => {
@@ -57,26 +58,45 @@ export default function BandDetailPage() {
   }, [bandId, isLeader]);
 
   const loadBand = async () => {
-    if (!bandId) return;
+    if (!bandId) {
+      console.error('No band ID provided');
+      navigate('/bands');
+      return;
+    }
     
     setLoading(true);
-    const { data, error } = await bandService.getBand(bandId);
+    setError(null);
     
-    if (!error && data) {
+    try {
+      console.log('Loading band with ID:', bandId);
+      const { data, error } = await bandService.getBand(bandId);
+      
+      if (error || !data) {
+        console.error('Error loading band:', error);
+        setError(error?.message || 'Failed to load band details');
+        navigate('/bands');
+        return;
+      }
+      
+      console.log('Band data loaded:', data);
       setBand(data);
       
       // Check if current user is a member or leader
       if (user && data.members) {
         const userMember = data.members.find(member => member.user_id === user.id);
-        setIsMember(!!userMember);
-        setIsLeader(userMember?.role === 'leader');
+        const isUserMember = !!userMember;
+        const isUserLeader = userMember?.role === 'leader';
+        
+        console.log('User membership status:', { isUserMember, isUserLeader });
+        setIsMember(isUserMember);
+        setIsLeader(isUserLeader);
       }
-    } else {
-      alert('Failed to load band: ' + error?.message);
-      navigate('/bands');
+    } catch (err) {
+      console.error('Unexpected error in loadBand:', err);
+      setError('An unexpected error occurred while loading the band');
+    } finally {
+      setLoading(false);
     }
-    
-    setLoading(false);
   };
 
   const handleJoinRequest = async () => {
