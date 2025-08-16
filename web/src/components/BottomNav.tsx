@@ -20,7 +20,7 @@ export default function BottomNav() {
     <nav
       role="navigation"
       aria-label="Primary"
-      className="md:hidden fixed z-[100] left-1/2 -translate-x-1/2 w-[calc(100%-1.5rem)] max-w-md rounded-2xl ui-glass-strong ui-vibrant-border shadow-xl"
+      className="md:hidden fixed bottom-4 z-[999] left-1/2 -translate-x-1/2 w-[calc(100%-1.5rem)] max-w-md rounded-2xl ui-glass-strong ui-vibrant-border shadow-2xl ring-1 ring-border/60 backdrop-blur"
       style={{ bottom: 'calc(env(safe-area-inset-bottom) + 1rem)' }}
     >
       <ul className="grid grid-cols-5">
