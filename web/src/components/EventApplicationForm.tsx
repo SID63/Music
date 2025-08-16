@@ -204,7 +204,7 @@ const EventApplicationForm: React.FC<EventApplicationFormProps> = ({
                   min="1"
                   value={quotation}
                   onChange={(e) => setQuotation(Number(e.target.value))}
-                  className="w-full px-6 py-4 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200 text-lg"
+                  className="w-full px-6 py-4 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200 text-lg font-medium text-foreground placeholder:text-foreground/70"
                   placeholder="Enter your quote amount"
                   required
                 />
@@ -225,7 +225,7 @@ const EventApplicationForm: React.FC<EventApplicationFormProps> = ({
                   value={additionalRequirements}
                   onChange={(e) => setAdditionalRequirements(e.target.value)}
                   rows={4}
-                  className="w-full px-6 py-4 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200 resize-none"
+                  className="w-full px-6 py-4 border-2 border-gray-200 rounded-xl focus:ring-4 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200 resize-none text-foreground placeholder:text-foreground/70 font-medium"
                   placeholder="Any additional requirements, equipment needs, or special requests..."
                 />
               </div>

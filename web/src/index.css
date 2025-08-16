@@ -160,6 +160,30 @@ body.modal-open {
   :where(button,[role="button"],input,select,textarea) { min-height: 44px; }
   /* Improve tap experience */
   :where(a, button, [role="button"]) { -webkit-tap-highlight-color: transparent; }
+
+  /* High-contrast defaults for all native form controls */
+  :where(input, textarea, select) {
+    color: hsl(var(--foreground));
+    -webkit-text-fill-color: hsl(var(--foreground)); /* iOS Safari */
+    caret-color: hsl(var(--foreground));
+    font-weight: 500; /* slightly heavier to avoid looking washed out on mobile */
+  }
+  :where(input::placeholder, textarea::placeholder, select::placeholder) {
+    color: hsl(var(--foreground) / 0.7);
+    opacity: 1; /* prevent browsers from dimming placeholders */
+  }
+  /* Improve readability of disabled form controls */
+  :where(input:disabled, textarea:disabled, select:disabled) {
+    -webkit-text-fill-color: hsl(var(--foreground) / 0.6);
+    color: hsl(var(--foreground) / 0.6);
+  }
+  /* Tame iOS autofill coloring which can reduce contrast */
+  input:-webkit-autofill,
+  textarea:-webkit-autofill,
+  select:-webkit-autofill {
+    -webkit-text-fill-color: hsl(var(--foreground)) !important;
+    transition: background-color 9999s ease-out 0s; /* keep background from flashing */
+  }
 }
 
 /* Utilities */
