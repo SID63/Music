@@ -218,8 +218,14 @@ drop policy if exists reviews_insert on public.reviews;
 create policy reviews_insert on public.reviews
   for insert with check (
     exists (
-      select 1 from public.bookings b
-      where b.id = booking_id and b.status = 'completed'
+      select 1
+      from public.bookings b
+      join public.events e on e.id = b.event_id
+      where b.id = booking_id
+        and (
+          b.status = 'completed'
+          or (b.status = 'confirmed' and coalesce(e.ends_at, e.starts_at) <= now())
+        )
     ) and exists (
       select 1 from public.profiles p where p.id = reviewer_profile_id and p.user_id = auth.uid()
     )

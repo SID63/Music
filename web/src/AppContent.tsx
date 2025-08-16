@@ -136,7 +136,7 @@ export default function AppContent() {
         <Route path="/bands/:id" element={<BandDetailPage />} />
         <Route path="/messages" element={<MessagesPage />} />
         <Route path="/messages/:conversationId" element={<MessagesPage />} />
-        <Route path="/reviews" element={<ReviewsPage />} />
+        <Route path="/reviews/:musicianId" element={<ReviewsPage />} />
         <Route path="/reviews/new/:profileId" element={<ReviewFormWrapper />} />
       </Route>
 

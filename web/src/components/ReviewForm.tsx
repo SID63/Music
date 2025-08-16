@@ -43,8 +43,8 @@ export default function ReviewForm({ revieweeProfileId, onSuccess }: ReviewFormP
       // First, try to find bookings where current user is musician and reviewee is organizer
       const { data: bookings1 } = await supabase
         .from('bookings')
-        .select('id, event_id')
-        .eq('status', 'completed')
+        .select('id, event_id, status')
+        .in('status', ['completed', 'confirmed'])
         .eq('musician_profile_id', currentProfile.id)
         .limit(1);
       
@@ -52,12 +52,17 @@ export default function ReviewForm({ revieweeProfileId, onSuccess }: ReviewFormP
         // Check if the event organizer is the reviewee
         const { data: event1 } = await supabase
           .from('events')
-          .select('organizer_profile_id')
+          .select('organizer_profile_id, starts_at, ends_at')
           .eq('id', bookings1[0].event_id)
           .single();
         
         if (event1 && event1.organizer_profile_id === revieweeProfileId) {
-          bookings = bookings1;
+          const booking = bookings1[0];
+          const eventEnd = new Date(event1.ends_at || event1.starts_at);
+          const eventHasEnded = eventEnd.getTime() <= Date.now();
+          if (booking.status === 'completed' || (booking.status === 'confirmed' && eventHasEnded)) {
+            bookings = bookings1;
+          }
         }
       }
       
@@ -65,8 +70,8 @@ export default function ReviewForm({ revieweeProfileId, onSuccess }: ReviewFormP
       if (!bookings) {
         const { data: bookings2 } = await supabase
           .from('bookings')
-          .select('id, event_id')
-          .eq('status', 'completed')
+          .select('id, event_id, status')
+          .in('status', ['completed', 'confirmed'])
           .eq('musician_profile_id', revieweeProfileId)
           .limit(1);
         
@@ -74,12 +79,17 @@ export default function ReviewForm({ revieweeProfileId, onSuccess }: ReviewFormP
           // Check if the event organizer is the current user
           const { data: event2 } = await supabase
             .from('events')
-            .select('organizer_profile_id')
+            .select('organizer_profile_id, starts_at, ends_at')
             .eq('id', bookings2[0].event_id)
             .single();
           
           if (event2 && event2.organizer_profile_id === currentProfile.id) {
-            bookings = bookings2;
+            const booking = bookings2[0];
+            const eventEnd = new Date(event2.ends_at || event2.starts_at);
+            const eventHasEnded = eventEnd.getTime() <= Date.now();
+            if (booking.status === 'completed' || (booking.status === 'confirmed' && eventHasEnded)) {
+              bookings = bookings2;
+            }
           }
         }
       }
@@ -188,7 +198,7 @@ export default function ReviewForm({ revieweeProfileId, onSuccess }: ReviewFormP
               value={comment}
               onChange={(e) => setComment(e.target.value)}
               rows={4}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-foreground placeholder:text-foreground/70 font-medium"
               placeholder="Share your experience working with this person..."
             />
           </div>

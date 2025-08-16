@@ -188,7 +188,7 @@ export default function MusicianProfile() {
                 />
                 {currentProfile && currentProfile.id !== musician.id && (
                   <button
-                    onClick={() => navigate(`/reviews/add/${musician.id}`)}
+                    onClick={() => navigate(`/reviews/new/${musician.id}`)}
                     className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl hover:from-green-600 hover:to-emerald-700 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
                   >
                     <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

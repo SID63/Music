@@ -219,7 +219,7 @@ export default function ReviewsPage() {
               
               <div className="mt-4 md:mt-0">
                 <Link
-                  to={`/reviews/add/${musician.id}`}
+                  to={`/reviews/new/${musician.id}`}
                   className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl hover:from-green-600 hover:to-emerald-700 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
                 >
                   <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -251,7 +251,7 @@ export default function ReviewsPage() {
                 {musician.display_name} hasn't received any reviews yet. Be the first to share your experience!
               </p>
               <Link
-                to={`/reviews/add/${musician.id}`}
+                to={`/reviews/new/${musician.id}`}
                 className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:from-blue-600 hover:to-purple-700 transition-all duration-200 font-semibold text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
               >
                 <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
