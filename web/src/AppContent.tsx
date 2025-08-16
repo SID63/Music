@@ -13,6 +13,7 @@ import EventDetailPage from './pages/EventDetailPage';
 import EventPostForm from './pages/EventPostForm';
 import EventEditPage from './pages/EventEditPage';
 import EventApplicationsPage from './pages/EventApplicationsPage';
+import EventApplyPage from './pages/EventApplyPage';
 import ProfileEdit from './pages/ProfileEdit';
 import ProfilePage from './pages/ProfilePage';
 import BandsPage from './pages/BandsPage';
@@ -126,6 +127,7 @@ export default function AppContent() {
       }>
         <Route path="/events/new" element={<EventPostForm />} />
         <Route path="/events/:id/edit" element={<EventEditPage />} />
+        <Route path="/events/:id/apply" element={<EventApplyPage />} />
         <Route path="/events/:id/applications" element={<EventApplicationsPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/profile/edit" element={<ProfileEdit />} />

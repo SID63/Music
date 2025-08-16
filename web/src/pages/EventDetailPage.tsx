@@ -246,20 +246,12 @@ export default function EventDetailPage() {
         <CardFooter className="border-t border-border pt-6">
           <div className="w-full flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-center sm:justify-between">
             <div className="text-sm text-muted-foreground">Posted on {format(new Date(event.created_at), 'MMMM d, yyyy')}</div>
-            {!isOwner && event.organizer_profile_id && (
-              <MessageButton
-                recipientProfileId={event.organizer_profile_id}
-                recipientName={hostName || 'Organizer'}
-                className="h-11 sm:h-10 w-full sm:w-auto"
-                labelOverride="Apply to Perform"
-                eventContext={{
-                  eventId: event.id,
-                  eventTitle: event.title,
-                  eventDate: formattedDate,
-                  eventLocation: event.location || undefined,
-                  isJobApplication: true
-                }}
-              />
+            {!isOwner && (
+              <Link to={`/events/${event.id}/apply`} className="w-full sm:w-auto">
+                <Button className="h-11 sm:h-10 w-full sm:w-auto">
+                  Apply to Perform
+                </Button>
+              </Link>
             )}
             {isOwner && (
               <Button 
