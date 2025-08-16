@@ -396,7 +396,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!profile) return '/';
     
     if (!isProfileComplete(profile)) {
-      return '/setup';
+      return '/profile/edit';
     }
     
     // Complete profiles get redirected based on role

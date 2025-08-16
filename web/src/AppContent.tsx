@@ -100,6 +100,7 @@ export default function AppContent() {
         <Route path="/events" element={<EventsBoard />} />
         <Route path="/events/:id" element={<EventDetailPage />} />
         <Route path="/appearance" element={<AppearancePage />} />
+        <Route path="/setup" element={<Navigate to="/profile/edit" replace />} />
         
         {/* Band routes */}
         <Route path="/bands" element={

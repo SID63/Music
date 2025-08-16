@@ -60,7 +60,7 @@ export default function ProfilePage() {
         <div className="bg-card ui-glass ui-vibrant-border border border-border rounded-lg p-6 text-center">
           <p className="text-muted-foreground mb-4">Let's set up your profile so you can book gigs or post events.</p>
           <Link
-            to="/setup"
+            to="/profile/edit"
             className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium w-full sm:w-auto min-h-12"
           >
             Go to Profile Setup
@@ -81,7 +81,7 @@ export default function ProfilePage() {
             Your profile is incomplete. Complete it to access all features!
           </p>
           <Link
-            to="/setup"
+            to="/profile/edit"
             className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium w-full sm:w-auto min-h-12"
           >
             Complete Profile Setup

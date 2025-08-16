@@ -45,9 +45,9 @@ export default function ProfileGuard({ children, requireComplete = true, feature
 
   // If profile is incomplete and we require complete profiles
   if (requireComplete && isProfileIncomplete(profile)) {
-    // Avoid redirect loops if already on setup
-    if (location.pathname !== '/setup') {
-      return <Navigate to="/setup" replace state={{ from: location.pathname }} />;
+    // Avoid redirect loops if already on edit page
+    if (!location.pathname.startsWith('/profile/edit')) {
+      return <Navigate to="/profile/edit" replace state={{ from: location.pathname }} />;
     }
     return <>{children}</>;
   }
