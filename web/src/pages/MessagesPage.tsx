@@ -62,6 +62,9 @@ export default function MessagesPage() {
   const [sending, setSending] = useState(false);
   const [fileUrl, setFileUrl] = useState('');
   const [fileType, setFileType] = useState<'audio' | 'image' | 'video' | null>(null);
+  // Refs for auto-scrolling to the most recent message
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const bandMessagesEndRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (profile) {
@@ -144,11 +147,25 @@ export default function MessagesPage() {
     }
   }, [selectedConversation, profile?.id]);
 
+  // Auto-scroll to bottom when direct messages update or thread changes
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }
+  }, [messages, selectedConversation]);
+
   useEffect(() => {
     if (selectedBandChat) {
       loadBandMessages(selectedBandChat);
     }
   }, [selectedBandChat]);
+
+  // Auto-scroll to bottom when band messages update or thread changes
+  useEffect(() => {
+    if (bandMessagesEndRef.current) {
+      bandMessagesEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }
+  }, [bandMessages, selectedBandChat]);
 
   const loadBandChats = async () => {
     if (!profile) return;
@@ -724,6 +741,8 @@ export default function MessagesPage() {
                               </div>
                             </div>
                           ))}
+                          {/* Anchor for auto-scroll */}
+                          <div ref={messagesEndRef} />
                         </div>
                       </ScrollArea>
                       
